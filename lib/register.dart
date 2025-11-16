@@ -225,21 +225,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Account Created Successfully"),
-          content: const Text("Your account has been registered!"),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Account Created Successfully",
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            "Your account has been registered!",
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close popup
+                Navigator.pop(context);
                 Navigator.pushReplacement(
-                  // Go directly to login
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
                 );
               },
-              child: const Text("OK"),
+              child: const Text(
+                "OK",
+                style: TextStyle(
+                  color: Colors.deepOrangeAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -248,24 +266,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showErrorDialog(BuildContext context, String error) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Registration Failed"),
-          content: Text(error),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          "Registration Failed",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          error,
+          style: const TextStyle(
+            color: Colors.black,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "OK",
+              style: TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ],
-        );
-      },
-    );
-  }
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Widget _buildLoginButton(BuildContext context) {
     return TextButton(

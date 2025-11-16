@@ -6,7 +6,8 @@ import 'manage.dart';
 import 'logs.dart';
 import 'authentication.dart';
 import 'sound_detection.dart';
-import 'snr.dart';
+import 'snr_visualization.dart'; 
+import 'widgets/gradient_button.dart'; // Import the new button
 
 void main() => runApp(const MyApp());
 
@@ -68,38 +69,6 @@ class SoundDetectApp extends StatelessWidget {
   }
 }
 
-Widget gradientButton({
-  required String text,
-  required VoidCallback onPressed,
-  EdgeInsetsGeometry padding =
-      const EdgeInsets.symmetric(horizontal: 60, vertical: 16),
-  double borderRadius = 12,
-  double fontSize = 16,
-  bool isCircle = false,
-}) {
-  return InkWell(
-    onTap: onPressed,
-    borderRadius: BorderRadius.circular(borderRadius),
-    child: Ink(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFDE0E6F), Color.fromARGB(255, 216, 221, 224)],
-        ),
-        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
-      ),
-      child: Container(
-        padding: padding,
-        alignment: Alignment.center,
-        child: Text(
-          text,
-          style: TextStyle(color: Colors.white, fontSize: fontSize),
-        ),
-      ),
-    ),
-  );
-}
-
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -111,6 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -130,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateBasedOnAuth() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    if (!mounted) return;
+    if (_isDisposed || !mounted) return;
 
     if (AuthService.isLoggedIn) {
       Navigator.pushReplacement(
@@ -147,6 +117,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _isDisposed = true;
     _controller.dispose();
     super.dispose();
   }
@@ -229,7 +200,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   String? _lastDetection;
   double? _lastConfidence;
   Map<dynamic, dynamic>? _allPredictions;
-  Map<String, dynamic>? _lastSNRMetrics; // SNR metrics instead of FFT
+  Map<String, dynamic>? _lastSNRMetrics;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -245,6 +217,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       lowerBound: 0.9,
       upperBound: 1.1,
     )..addStatusListener((status) {
+        if (_isDisposed) return;
         if (_isDetecting && status == AnimationStatus.completed) {
           _scaleController.reverse();
         } else if (_isDetecting && status == AnimationStatus.dismissed) {
@@ -256,15 +229,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 500),
     )..addListener(() {
-        if (_isDetecting) {
-          setState(() {
-            _currentWaveHeights = _baseWaveHeights.map((h) {
-              final progress = _waveController.value;
-              final offset = math.sin(progress * 2 * math.pi) * 15;
-              return (h + offset).clamp(10.0, 50.0);
-            }).toList();
-          });
-        }
+        if (_isDisposed || !_isDetecting) return;
+        setState(() {
+          _currentWaveHeights = _baseWaveHeights.map((h) {
+            final progress = _waveController.value;
+            final offset = math.sin(progress * 2 * math.pi) * 15;
+            return (h + offset).clamp(10.0, 50.0);
+          }).toList();
+        });
       });
   }
 
@@ -275,83 +247,203 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _isDetecting = true;
       _isProcessing = true;
       _lastSNRMetrics = null;
+      _lastDetection = null;
+      _lastConfidence = null;
     });
 
     _scaleController.forward();
     _waveController.repeat();
 
-    final result = await _detectionService.detectSound();
+    try {
+      final result = await _detectionService.detectSound();
 
-    setState(() {
-      _isDetecting = false;
-      _isProcessing = false;
+      if (_isDisposed) return;
 
-      if (result['success'] == true) {
-        _lastDetection = result['predicted_class'];
-        _lastConfidence = result['confidence'];
-        _allPredictions = result['all_predictions'];
-        _lastSNRMetrics = result['snr_metrics'];
+      setState(() {
+        _isDetecting = false;
+        _isProcessing = false;
 
-        String message =
-            'Detected: $_lastDetection (${_lastConfidence?.toStringAsFixed(1)}%)';
+        if (result['success'] == true) {
+          _lastDetection = result['predicted_class']?.toString() ?? 'Unknown';
+          _lastConfidence = _parseConfidence(result['confidence']);
+          _allPredictions = result['all_predictions'];
+          _lastSNRMetrics = _parseSNRMetrics(result['snr_metrics']);
 
-        if (_lastSNRMetrics != null) {
-          double snrDb = (_lastSNRMetrics!['snr_db'] ?? 0.0).toDouble();
-          String quality = _lastSNRMetrics!['quality'] ?? 'Unknown';
-          message += '\nSNR: ${snrDb.toStringAsFixed(1)} dB ($quality)';
+          _showResultSnackbar();
+        } else {
+          _showErrorSnackbar(result['error']?.toString() ?? 'Detection failed');
         }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(message),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        _showSNRAnalysisDialog();
-                      },
-                      child: const Text('VIEW SIGNAL ANALYSIS',
-                          style: TextStyle(color: Colors.blue)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            backgroundColor: _getSnackbarColor(_lastDetection!),
-            duration: const Duration(seconds: 6),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Detection failed: ${result['error']}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      });
+    } catch (e) {
+      if (_isDisposed) return;
+      
+      setState(() {
+        _isDetecting = false;
+        _isProcessing = false;
+      });
+      _showErrorSnackbar('Detection error: $e');
+    } finally {
+      if (!_isDisposed) {
+        _scaleController.reset();
+        _waveController.reset();
+        _currentWaveHeights = List.from(_baseWaveHeights);
       }
-    });
+    }
+  }
 
-    _scaleController.reset();
-    _waveController.reset();
-    _currentWaveHeights = List.from(_baseWaveHeights);
+  double _parseConfidence(dynamic confidence) {
+    if (confidence is double) return confidence;
+    if (confidence is int) return confidence.toDouble();
+    if (confidence is String) return double.tryParse(confidence) ?? 0.0;
+    return 0.0;
+  }
+
+  Map<String, dynamic>? _parseSNRMetrics(dynamic metrics) {
+    if (metrics is! Map<String, dynamic>) return null;
+    
+    try {
+      // Safely parse SNR metrics with type checking
+      final snrOverTime = _safeCastList<double>(metrics['snr_over_time']);
+      final timeBins = _safeCastList<double>(metrics['time_bins']);
+      final snrDb = _parseDouble(metrics['snr_db']);
+      final quality = metrics['quality']?.toString() ?? 'Unknown';
+      
+      // Validate that we have valid time-series data
+      final bool hasValidTimeSeries = snrOverTime.isNotEmpty && 
+                                    timeBins.isNotEmpty && 
+                                    snrOverTime.length == timeBins.length;
+
+      return {
+        'snr_over_time': snrOverTime,
+        'time_bins': timeBins,
+        'snr_db': snrDb,
+        'quality': quality,
+        'has_valid_time_series': hasValidTimeSeries,
+        'signal_percentage': _parseDouble(metrics['signal_percentage']),
+        'noise_percentage': _parseDouble(metrics['noise_percentage']),
+        'total_duration': _parseDouble(metrics['total_duration']),
+      };
+    } catch (e) {
+      print('Error parsing SNR metrics: $e');
+      return null;
+    }
+  }
+
+  List<double> _safeCastList<T>(dynamic list) {
+    if (list is List) {
+      try {
+        return list.whereType<num>().map((e) => e.toDouble()).toList();
+      } catch (e) {
+        print('List casting error: $e');
+      }
+    }
+    return <double>[];
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  void _showResultSnackbar() {
+    if (_isDisposed) return;
+
+    String message = 'Detected: $_lastDetection (${_lastConfidence?.toStringAsFixed(1)}%)';
+
+    if (_lastSNRMetrics != null) {
+      double snrDb = (_lastSNRMetrics!['snr_db'] ?? 0.0).toDouble();
+      String quality = _lastSNRMetrics!['quality'] ?? 'Unknown';
+      message += '\nSNR: ${snrDb.toStringAsFixed(1)} dB ($quality)';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            if (_lastSNRMetrics != null && _lastSNRMetrics!['has_valid_time_series'] == true) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      _showSNRAnalysisDialog();
+                    },
+                    child: const Text('VIEW SIGNAL ANALYSIS',
+                        style: TextStyle(color: Colors.blue)),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        backgroundColor: _getSnackbarColor(_lastDetection ?? 'Unknown'),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String error) {
+    if (_isDisposed) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Detection failed: $error'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   void _showSNRAnalysisDialog() {
-    if (_lastDetection == null || _lastConfidence == null) return;
+    if (_lastSNRMetrics == null || _lastSNRMetrics!['has_valid_time_series'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No valid time-series data available for analysis'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
-    SNRAnalysisDisplay(
-      soundClass: _lastDetection!,
-      confidence: _lastConfidence!,
-      allPredictions: _allPredictions,
-      snrMetrics: _lastSNRMetrics,
-    ).show(context);
+    final List<double> snrOverTime = _lastSNRMetrics!['snr_over_time'] ?? [];
+    final List<double> timeBins = _lastSNRMetrics!['time_bins'] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF001220).withOpacity(0.95),
+        contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withOpacity(0.3)),
+        ),
+        title: const Text(
+          'Detailed Signal Analysis',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SNRTimeChart(
+            snrValues: snrOverTime,
+            timeBins: timeBins,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('CLOSE', style: TextStyle(color: Colors.amber)),
+          ),
+        ],
+      ),
+    );
   }
 
   Color _getSnackbarColor(String soundClass) {
@@ -390,6 +482,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _scaleController.dispose();
     _waveController.dispose();
     _detectionService.dispose();
@@ -398,13 +491,15 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasValidSNRData = _lastSNRMetrics != null && 
+                                _lastSNRMetrics!['has_valid_time_series'] == true;
+
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Sound Detector'),
         actions: [
-          // SNR analysis indicator
-          if (_lastSNRMetrics != null)
+          if (hasValidSNRData)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Row(
@@ -426,7 +521,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                 ],
               ),
             ),
-          if (_lastDetection != null)
+          if (hasValidSNRData)
             IconButton(
               icon: const Icon(Icons.auto_graph, color: Colors.white),
               onPressed: _showSNRAnalysisDialog,
@@ -450,7 +545,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20),
                     child: GestureDetector(
-                      onTap: _showSNRAnalysisDialog,
+                      onTap: hasValidSNRData ? _showSNRAnalysisDialog : null,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 12),
@@ -601,9 +696,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold),
                             ),
-                            if (_lastSNRMetrics != null)
+                            if (hasValidSNRData)
                               const SizedBox(height: 8),
-                            if (_lastSNRMetrics != null)
+                            if (hasValidSNRData)
                               Text(
                                 'Signal Analysis Available',
                                 style: TextStyle(

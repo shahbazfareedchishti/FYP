@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:sound_app/authentication.dart';
 import 'package:sound_app/login.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _emailController = TextEditingController();
+  final _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +59,7 @@ class ForgotPasswordScreen extends StatelessWidget {
 
   Widget _buildEmailField() {
     return TextField(
+      controller: _emailController,
       keyboardType: TextInputType.emailAddress,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -80,14 +90,34 @@ class ForgotPasswordScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: () {
-          // TODO: Implement password reset logic
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Password reset link sent to your email'),
-              backgroundColor: Colors.green,
-            ),
-          );
+        onPressed: () async {
+          final email = _emailController.text;
+
+          if (email.isNotEmpty) {
+            try {
+              final resetLink = await _authService.requestPasswordReset(email);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Password reset link (simulated): $resetLink'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('An error occurred: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please enter your email.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         },
         child: const Text(
           'Send Reset Link',

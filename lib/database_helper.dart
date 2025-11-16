@@ -19,7 +19,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'sound_detector.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3, // Incremented version
       onCreate: _createTables,
       onUpgrade: _upgradeDatabase,
     );
@@ -33,7 +33,9 @@ class DatabaseHelper {
         username TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        reset_token TEXT,
+        reset_token_expiry TEXT
       )
     ''');
 
@@ -73,6 +75,10 @@ class DatabaseHelper {
         )
       ''');
     }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE users ADD COLUMN reset_token TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN reset_token_expiry TEXT');
+    }
   }
 
   // User operations
@@ -111,6 +117,45 @@ class DatabaseHelper {
     );
 
     return user.isNotEmpty ? user.first : null;
+  }
+
+  Future<void> setPasswordResetToken(String email, String token) async {
+    final db = await database;
+    final expiry = DateTime.now().add(const Duration(hours: 1)).toIso8601String();
+    await db.update(
+      'users',
+      {'reset_token': token, 'reset_token_expiry': expiry},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+  }
+
+  Future<Map<String, dynamic>?> getUserByResetToken(String token) async {
+    final db = await database;
+    final user = await db.query(
+      'users',
+      where: 'reset_token = ?',
+      whereArgs: [token],
+    );
+
+    if (user.isNotEmpty) {
+      final expiry = DateTime.parse(user.first['reset_token_expiry'] as String);
+      if (expiry.isAfter(DateTime.now())) {
+        return user.first;
+      }
+    }
+
+    return null;
+  }
+
+  Future<int> updateUserPassword(String email, String newPassword) async {
+    final db = await database;
+    return await db.update(
+      'users',
+      {'password': newPassword, 'reset_token': null, 'reset_token_expiry': null},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
   }
 
   // Sound detection operations
