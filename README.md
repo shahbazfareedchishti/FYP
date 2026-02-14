@@ -9,12 +9,8 @@ Instead of relying on expensive, heavy hardware solutions, this repository imple
 ### Key Results
 
 * **Noise Reduction:** Achieved a 60% reduction in background mechanical noise.
-* 
-**Classification Accuracy:** **98% accuracy** in identifying specific noise sources (UUV, Speedboat, Kaiyuan).
-
-
-* 
-**Deployment:** Fully offline-capable web application for naval vessels.
+* **Classification Accuracy:** **98% accuracy** in identifying specific noise sources (UUV, Speedboat, Kaiyuan).
+* **Deployment:** Fully offline-capable web application for naval vessels.
 
 
 ## Technical Architecture: The 3-Stage Pipeline
@@ -29,24 +25,15 @@ The core of this project is a custom deep learning pipeline that processes 3-sec
 
 ### 2. Identification (The Classifier)
 
-* 
-**Model:** CRNN (Convolutional Recurrent Neural Network)
-
-
+* **Model:** CRNN (Convolutional Recurrent Neural Network)
 * **Function:** Classifies the detected noise into specific categories.
-* 
-**Classes:** Speedboat, UUV (Unmanned Underwater Vehicle), Kaiyuan.
-
-
+* **Classes:** Speedboat, UUV (Unmanned Underwater Vehicle), Kaiyuan.
 * **Performance:** 98% Accuracy.
 
 ### 3. Reduction (The Denoiser) 
 
 * **Model:** TasNet (Time-domain Audio Separation Network)
-* 
-**Function:** A lightweight Convolutional Encoder-Decoder network designed to "scrub" background interference.
-
-
+* **Function:** A lightweight Convolutional Encoder-Decoder network designed to "scrub" background interference.
 * **Training Details:** * Trained 3 separate models (one for each category).
 * **Training Load:** 50 epochs per model, requiring ~14 hours of training time each.
 
@@ -67,20 +54,10 @@ This project utilizes the QiandaoEar22 underwater acoustic dataset.
 ## Tech Stack
 
 * **Deep Learning:** Python, TensorFlow/Keras, PyTorch (YAMNet, CRNN, TasNet)
-* 
-**Backend:** Flask (Python) - Handles API requests and model inference.
+* **Backend:** Flask (Python) - Handles API requests and model inference.
+* **Database:** SQLite - Used for local, offline-capable logging of detection timestamps and confidence scores.
+* **Frontend:** HTML/JavaScript - Provides real-time visualization of signal analysis.
 
-
-* 
-**Database:** SQLite - Used for local, offline-capable logging of detection timestamps and confidence scores.
-
-
-* 
-**Frontend:** HTML/JavaScript - Provides real-time visualization of signal analysis.
-
-
-
----
 
 ## Additional Resources
 
