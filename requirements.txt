@@ -1,3 +1,11 @@
-You need to run this command to install required packages:
-
-pip install flask librosa numpy scipy matplotlib torch torchvision torchaudio uuid scipy
+Setup the environment and install following packages:
+1.flask
+2.soundfile
+3.pydub
+4.librosa
+5.torch
+5.scipy
+6.numpy
+7.tensorflow
+8.tensorflow-hub
+9.torch

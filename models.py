@@ -19,10 +19,8 @@ class DatabaseHelper:
             
         self.db_path = 'sound_detector.db'
         self._initialized = True
-        # Don't initialize connection here, create per thread
     
     def get_connection(self):
-        # Store connection in thread-local storage
         if not hasattr(thread_local, 'db_connection'):
             thread_local.db_connection = self._init_database()
         return thread_local.db_connection
@@ -32,7 +30,6 @@ class DatabaseHelper:
         return self.get_connection()
     
     def init_db(self):
-        # Initialize in main thread
         conn = self._init_database()
         conn.close()
     
@@ -40,7 +37,6 @@ class DatabaseHelper:
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         
-        # Set up database with version
         cursor = conn.cursor()
         cursor.execute('PRAGMA user_version')
         current_version = cursor.fetchone()[0] or 0
@@ -53,7 +49,6 @@ class DatabaseHelper:
             cursor.execute('PRAGMA user_version = 3')
         
         conn.commit()
-        # Ensure `raw_data` column exists on sound_detections for older DBs
         try:
             cursor.execute("PRAGMA table_info(sound_detections)")
             cols = [row[1] for row in cursor.fetchall()]
@@ -67,7 +62,6 @@ class DatabaseHelper:
     def _create_tables(self, db):
         cursor = db.cursor()
         
-        # Users table
         cursor.execute('''
             CREATE TABLE users(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +74,6 @@ class DatabaseHelper:
             )
         ''')
         
-        # Sound detections table
         cursor.execute('''
             CREATE TABLE sound_detections(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +88,6 @@ class DatabaseHelper:
             )
         ''')
         
-        # Create indexes for better performance
         cursor.execute('CREATE INDEX idx_user_id ON sound_detections(user_id)')
         cursor.execute('CREATE INDEX idx_timestamp ON sound_detections(timestamp)')
     
@@ -118,7 +110,6 @@ class DatabaseHelper:
             ''')
         
         if old_version < 3:
-            # Check if columns exist before adding
             cursor.execute("PRAGMA table_info(users)")
             columns = [column[1] for column in cursor.fetchall()]
             
@@ -127,18 +118,15 @@ class DatabaseHelper:
             if 'reset_token_expiry' not in columns:
                 cursor.execute('ALTER TABLE users ADD COLUMN reset_token_expiry TEXT')
 
-            # Ensure sound_detections has raw_data column
             cursor.execute("PRAGMA table_info(sound_detections)")
             sd_cols = [column[1] for column in cursor.fetchall()]
             if 'raw_data' not in sd_cols:
                 cursor.execute('ALTER TABLE sound_detections ADD COLUMN raw_data TEXT')
     
-    # User operations
     def register_user(self, username, email, password):
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Check if user already exists
         cursor.execute(
             'SELECT * FROM users WHERE username = ? OR email = ?',
             (username, email)
@@ -148,7 +136,6 @@ class DatabaseHelper:
         if existing_user:
             raise Exception('Username or email already exists')
         
-        # Insert new user
         cursor.execute(
             'INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)',
             (username, email, password, datetime.now().isoformat())
@@ -162,7 +149,7 @@ class DatabaseHelper:
         cursor = conn.cursor()
         
         cursor.execute(
-            'SELECT * FROM users WHERE username = ? AND password = ?',  # Plain password check
+            'SELECT * FROM users WHERE username = ? AND password = ?',
             (username, password)
         )
         user = cursor.fetchone()
@@ -239,7 +226,6 @@ class DatabaseHelper:
         conn.commit()
         return cursor.rowcount
     
-    # Sound detection operations
     def insert_detection(self, user_id, sound_class, confidence):
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -275,8 +261,6 @@ class DatabaseHelper:
         
         return [dict(detection) for detection in detections]
     
-    
-
     def delete_user_detection(self, detection_id):
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -284,6 +268,47 @@ class DatabaseHelper:
         cursor.execute(
             'DELETE FROM sound_detections WHERE id = ?',
             (detection_id,)
+        )
+        conn.commit()
+        return cursor.rowcount
+    
+    # --- ADD THESE METHODS TO YOUR DatabaseHelper CLASS ---
+
+    def get_user_by_username(self, username):
+        """Check if a username already exists (used during profile update)"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'SELECT * FROM users WHERE username = ?',
+            (username,)
+        )
+        user = cursor.fetchone()
+        
+        return dict(user) if user else None
+
+    def update_user_profile(self, user_id, new_username, new_email):
+        """Updates the username and email for a logged-in user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'UPDATE users SET username = ?, email = ? WHERE id = ?',
+            (new_username, new_email, user_id)
+        )
+        conn.commit()
+        return cursor.rowcount
+
+    def delete_user(self, user_id):
+        """Permanently deletes a user account"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Note: Because of ON DELETE CASCADE in your table creation, 
+        # deleting the user will automatically delete their sound_detections too.
+        cursor.execute(
+            'DELETE FROM users WHERE id = ?',
+            (user_id,)
         )
         conn.commit()
         return cursor.rowcount
@@ -297,7 +322,5 @@ class DatabaseHelper:
             (user_id,)
         )
         conn.commit()
-    
 
-# Thread-local storage for database connections
 thread_local = threading.local()

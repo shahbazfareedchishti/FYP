@@ -3,135 +3,634 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sound Detector</title>
+    <title>Live Recording - Sound Detector</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <link rel="icon" href="{{ url_for('static', filename='images/anchor.png') }}" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        .progress-container {
+            width: 100%;
+            background: rgba(33, 3, 132, 0.1);
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 6px;
+            background: linear-gradient(90deg, #1D2545, #4a23c9);
+            border-radius: 8px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        .simple-header {
+            background: #1D2545;
+            color: white;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            height: 70px;
+            box-sizing: border-box;
+        }
+
+        .header-left {
+            width: 70px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .header-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .header-center i { font-size: 1.4rem; }
+
+        .header-right {
+            padding-right: 30px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+        }
+        
+        .toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .toggle-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .app-container {
+            display: flex;
+            height: calc(100vh - 70px);
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .content-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100%;
+            background: #1D2545;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed { width: 70px; }
+        
+        .sidebar.collapsed .sidebar-menu li a span {
+            display: none;
+            opacity: 0;
+        }
+
+        .sidebar.collapsed .sidebar-menu li a {
+            justify-content: center;
+            padding: 15px 0;
+        }
+        .sidebar.collapsed .sidebar-menu li a i {
+            margin-right: 0;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 0 0;
+        }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .sidebar-menu li a i {
+            margin-right: 15px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .sidebar-menu li.active a,
+        .sidebar-menu li a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+            padding: 0;
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+        }
+
+        .recording-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
+            color: #333;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .recording-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .recording-header h1 {
+            color: #000000;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .recording-header p {
+            color: #a0aec0;
+        }
+
+        .recording-wrapper {
+            border: 2px dashed #1D2545;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: rgba(33, 3, 132, 0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .recording-wrapper i {
+            color: #1D2545 !important;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .record-button {
+            background: #1D2545;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 1rem auto;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .record-button:hover {
+            background: #1a0269;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 3, 132, 0.3);
+        }
+
+        .record-button.recording {
+            background: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+
+        .record-button.recording:hover {
+            background: #c82333;
+        }
+
+        .record-button.processing {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .record-button.processing:hover {
+            background: #6c757d;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1D2545;
+            margin: 1rem 0;
+            font-family: monospace;
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 100px;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .visualizer canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            background: rgba(33, 3, 132, 0.05);
+        }
+
+        .results-section {
+            margin-top: 2rem;
+            animation: fadeIn 0.5s ease-out;
+            display: none;
+        }
+
+        .result-card-item {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            background: #1D2545;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 5px solid #4CAF50;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left-width: 5px;
+        }
+
+        .result-icon {
+            font-size: 1.5rem;
+            color: #ffffff;
+            margin-right: 1rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .result-content h4 {
+            margin: 0;
+            color: #a0aec0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-content p {
+            margin: 5px 0 0 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .fft-section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgb(0, 0, 0);
+            display: none;
+        }
+
+        .fft-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .players-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .audio-player-card {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(33, 3, 132, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .audio-player-card h3 {
+            margin: 0 0 1rem 0;
+            color: #000000;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audio-player {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .audio-info {
+            font-size: 0.85rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-error { background: rgba(198, 40, 40, 0.2); color: #d32f2f; border: 1px solid #e57373; }
+        .alert-success { background: rgba(46, 125, 50, 0.2); color: #2e7d32; border: 1px solid #81c784; }
+        .alert-info { background: rgba(21, 101, 192, 0.2); color: #1565c0; border: 1px solid #64b5f6; }
+        .alert-warning { background: rgba(255, 143, 0, 0.2); color: #ff8f00; border: 1px solid #ffb74d; }
+
+        .download-btn {
+            background: #1D2545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .download-btn2 {
+            background: #45a049;
+            color: white !important;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .permission-modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .permission-icon {
+            font-size: 3rem;
+            color: #1D2545;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .detection-container,
+        #detection-result,
+        #wave-animation,
+        #spectrogram-container,
+        #snr-chart-container,
+        .detection-button-container,
+        #status-message {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Navigation Sidebar -->
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <div class="app-logo">
-                    <i class="fas fa-anchor"></i>
-                    <span>Sound Detector</span>
-                </div>
-                <div class="user-info">
-                    Welcome, {{ session.username }}!
-                </div>
+    <header class="simple-header">
+        <div class="header-left">
+            <button id="sidebar-toggle" class="toggle-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="header-center">
+            <i class="fas fa-anchor"></i>
+
+        </div>
+
+        <div class="header-right">
+            <div class="header-user">
+                <i class="fas fa-user-circle"></i>
+                <span>{{ session.username }}</span>
             </div>
-            
-            <ul class="sidebar-menu">
-                <li class="active"><a href="{{ url_for('main') }}"><i class="fas fa-home"></i> Home</a></li>
-                <li><a href="{{ url_for('logs') }}"><i class="fas fa-history"></i> Logs</a></li>
-                <li><a href="{{ url_for('manage_account') }}"><i class="fas fa-user-cog"></i> Manage Account</a></li>
-                <li><a href="#" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-            </ul>
-        </nav>
+        </div>
+    </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="waves-background"></div>
-            
-            <div class="detection-container">
-                <!-- Permission Request Modal -->
-                <div id="permission-modal" class="modal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="permission-icon">
-                            <i class="fas fa-microphone"></i>
+    <div class="app-container">
+        <div class="content-wrapper">
+            <nav class="sidebar collapsed" id="sidebar">
+                <ul class="sidebar-menu">
+                    <li><a href="{{ url_for('main') }}"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li><a href="{{ url_for('upload') }}"><i class="fas fa-file-upload"></i> <span>Upload & Analyze</span></a></li>
+                    <li><a href="{{ url_for('logs') }}"><i class="fas fa-history"></i> <span>Logs</span></a></li>
+                    <li><a href="{{ url_for('manage_account') }}"><i class="fas fa-user-cog"></i> <span>Manage Account</span></a></li>
+                    <li><a href="#" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
+                </ul>
+            </nav>
+
+            <main class="main-content">
+                <div class="waves-background"></div>
+                
+                <div class="recording-container">
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    <i class="fas fa-info-circle"></i> {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="recording-wrapper">
+                        <i class="fas fa-microphone"></i>
+                        <div style="margin-bottom: 10px; font-weight: 500;">Record audio from your microphone</div>
+                        <div class="timer-display" id="timer">00:00</div>
+                        
+                        <div class="visualizer">
+                            <canvas id="audioVisualizer"></canvas>
                         </div>
-                        <h3>Microphone Access Required</h3>
-                        <p>Sound Detector needs access to your microphone to detect sounds. Please allow microphone permissions to continue.</p>
-                        <div class="modal-actions">
-                            <button class="btn-secondary" onclick="hidePermissionModal()">Cancel</button>
-                            <button class="btn-primary" onclick="requestMicrophonePermission()">Allow Microphone</button>
-                        </div>
+                        
+                        <button id="recordButton" class="record-button">
+                            <span id="recordText">Start Recording</span>
+                        </button>
                     </div>
-                </div>
 
-                <!-- Permission Denied Modal -->
-                <div id="permission-denied-modal" class="modal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="permission-icon denied">
-                            <i class="fas fa-microphone-slash"></i>
+                    <div class="results-section" id="resultsSection">
+                        <div class="result-card-item">
+                            <div class="result-icon">
+                                <i class="fas fa-file-audio"></i>
+                            </div>
+                            <div class="result-content">
+                                <h4>Recording Name</h4>
+                                <p id="recordingName">recording.wav</p>
+                            </div>
                         </div>
-                        <h3>Microphone Access Denied</h3>
-                        <p>Microphone permission is required for sound detection. Please enable microphone access in your browser settings and refresh the page.</p>
-                        <div class="modal-actions">
-                            <button class="btn-primary" onclick="hidePermissionDeniedModal()">OK</button>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Detection Results -->
-                <div id="detection-result" class="detection-result" style="display: none;">
-                    <div class="result-card" id="result-card">
-                        <i id="result-icon" class="fas fa-question-circle"></i>
-                        <div class="result-info">
-                            <h3 id="detection-type">Unknown</h3>
-                            <p id="detection-confidence">0% confidence</p>
-                            <div class="snr-info">
-                                <span id="snr-value">SNR: 0 dB</span>
-                                <span id="snr-quality" class="quality-badge">Unknown</span>
+                        <div class="result-card-item">
+                            <div class="result-icon" style="color: #ffffff;">
+                                <i class="fas fa-microphone"></i>
+                            </div>
+                            <div class="result-content">
+                                <h4>Predicted Class</h4>
+                                <p id="predictedClass">Unknown</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Spectrogram image produced by server -->
-                    <div id="spectrogram-container" style="margin-top:1rem; display:none;">
-                        <h4>Spectrogram</h4>
-                        <img id="spectrogram-img" src="" alt="Spectrogram" style="max-width:100%; border-radius:8px;" />
+                    <div class="fft-section" id="fftSection">
+                        <div class="fft-title">
+                            <i class="fas fa-chart-bar" style="color: #000000;"></i>
+                            Spectral Analysis Comparison
+                        </div>
+                        
+                        <div class="chart-wrapper">
+                            <canvas id="fftCombinedChart"></canvas>
+                        </div>
+                        
+                        <div class="players-container">
+                            <div class="audio-player-card">
+                                <h3><i class="fas fa-file-audio" style="color: #1D2545;"></i> Original Recording</h3>
+                                <div class="audio-info">
+                                    <span id="originalAudioInfo"></span>
+                                </div>
+                                <audio id="originalAudio" controls class="audio-player">
+                                    <source src="" type="audio/wav">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <a href="#" id="downloadOriginal" class="download-btn" download="recording_original.wav">
+                                    <i class="fas fa-download"></i> Download Original
+                                </a>
+                            </div>
+
+                            <div class="audio-player-card" id="processedAudioCard" style="display: none;">
+                                <h3><i class="fas fa-file-audio" style="color: #28a745;"></i> <span id="processedLabel">Processed Audio</span></h3>
+                                <div class="audio-info">
+                                    <span id="processedAudioInfo"></span>
+                                </div>
+                                <audio id="processedAudio" controls class="audio-player">
+                                    <source src="" type="audio/wav">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <a href="#" id="downloadProcessed" class="download-btn2" style="color: white;" download="recording_processed.wav">
+                                    <i class="fas fa-download"></i> Download Processed
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- SNR time-series chart -->
-                    <div id="snr-chart-container" style="margin-top:1rem; display:none;">
-                        <h4>SNR Over Time</h4>
-                        <canvas id="snr-chart" height="120"></canvas>
+                    <div class="nav-button" style="margin-top: 2rem; text-align: center;">
+                        <a href="{{ url_for('main') }}" class="btn-secondary" style="text-decoration: none; display: inline-block;">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
                     </div>
                 </div>
-                <div class="analysis-actions" style="margin-top: 1rem;">
-                    <button class="btn-primary" onclick="viewSNRAnalysis()" style="padding: 0.5rem 1rem;">
-                        <i class="fas fa-chart-line"></i> View Signal Analysis
-                    </button>
-                </div>
-
-                <script>
-                function viewSNRAnalysis() {
-                    window.location.href = "{{ url_for('snr_analysis') }}";
-                }
-                </script>
-
-                <!-- Wave Animation -->
-                <div id="wave-animation" class="wave-animation" style="display: none;">
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                </div>
-
-                <!-- Detection Button -->
-                <div class="detection-button-container">
-                    <button id="detect-button" class="detect-button">
-                        <i class="fas fa-microphone"></i>
-                        <span>Tap to Detect</span>
-                    </button>
-                </div>
-
-                <!-- Status Message -->
-                <div id="status-message" class="status-message" style="display: none;">
-                    <p>Recording audio...</p>
-                    <p class="sub-message">Make noise near your microphone</p>
-                </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
-    
+
+    <div id="permission-modal" class="permission-modal">
+        <div class="permission-modal-content">
+            <div class="permission-icon">
+                <i class="fas fa-microphone"></i>
+            </div>
+            <h3>Microphone Access Required</h3>
+            <p>Sound Detector needs access to your microphone to record audio. Please allow microphone permissions to continue.</p>
+            <div style="margin-top: 2rem; display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-secondary" onclick="hidePermissionModal()" style="padding: 0.5rem 1.5rem;">Cancel</button>
+                <button class="btn-primary" onclick="requestMicrophonePermission()" style="padding: 0.5rem 1.5rem;">Allow Microphone</button>
+            </div>
+        </div>
+    </div>
+
     <div id="logout-modal" class="modal" style="display: none;">
         <div class="modal-content centered-modal">
             <div class="modal-icon logout-icon">
@@ -149,645 +648,791 @@
     </div>
 
     <script>
-        // Audio recording and detection
-        let mediaRecorder;
+        let mediaRecorder = null;
         let audioChunks = [];
-        let isDetecting = false;
-        let isProcessing = false;
-        let hasMicrophonePermission = false;
+        let isRecording = false;
+        let recordingStartTime = 0;
+        let timerInterval = null;
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let animationId = null;
+        let canvasCtx = null;
 
-        // Check microphone permission on page load
-        document.addEventListener('DOMContentLoaded', async function() {
-            await checkMicrophonePermission();
-        });
+        const recordButton = document.getElementById('recordButton');
+        const recordText = document.getElementById('recordText');
+        const timerDisplay = document.getElementById('timer');
+        const visualizerCanvas = document.getElementById('audioVisualizer');
+        const permissionModal = document.getElementById('permission-modal');
+        const resultsSection = document.getElementById('resultsSection');
+        const fftSection = document.getElementById('fftSection');
+        const processedAudioCard = document.getElementById('processedAudioCard');
 
-        document.getElementById('detect-button').addEventListener('click', async function() {
-            if (!hasMicrophonePermission) {
-                showPermissionModal();
-                return;
-            }
-            await toggleDetect();
-        });
-
-        async function checkMicrophonePermission() {
-            try {
-                // Check if we can query microphone permission
-                const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
-                
-                if (permissionStatus.state === 'granted') {
-                    hasMicrophonePermission = true;
-                    return true;
-                } else if (permissionStatus.state === 'prompt') {
-                    // Permission hasn't been decided yet
-                    return false;
-                } else {
-                    // Permission denied
-                    return false;
-                }
-            } catch (error) {
-                console.log('Permission query not supported:', error);
-                // Fallback: try to get user media
-                return await testMicrophoneAccess();
-            }
-        }
-
-        async function testMicrophoneAccess() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                // Immediately stop the stream since we just wanted to test access
-                stream.getTracks().forEach(track => track.stop());
-                hasMicrophonePermission = true;
-                return true;
-            } catch (error) {
-                console.log('Microphone access denied:', error);
-                hasMicrophonePermission = false;
-                return false;
-            }
-        }
-
-        async function requestMicrophonePermission() {
-            try {
-                hidePermissionModal();
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    } 
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            if(toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
                 });
-                
-                // Stop the stream immediately after getting permission
-                stream.getTracks().forEach(track => track.stop());
-                
-                hasMicrophonePermission = true;
-                showNotification('Microphone access granted!', 'success');
-                
-            } catch (error) {
-                console.log('Microphone permission denied:', error);
-                hasMicrophonePermission = false;
-                showPermissionDeniedModal();
-            }
-        }
-        async function convertToWav(audioBlob) {
-            return new Promise((resolve, reject) => {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const fileReader = new FileReader();
-                
-                fileReader.onload = async function() {
-                    try {
-                        const audioBuffer = await audioContext.decodeAudioData(fileReader.result);
-                        
-                        // Resample to 16000Hz if needed (common for audio models)
-                        const targetSampleRate = 16000;
-                        let sourceBuffer = audioBuffer;
-                        
-                        if (audioBuffer.sampleRate !== targetSampleRate) {
-                            sourceBuffer = await resampleAudioBuffer(audioBuffer, targetSampleRate);
-                        }
-                        
-                        const wavBlob = audioBufferToWav(sourceBuffer);
-                        resolve(wavBlob);
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                fileReader.onerror = reject;
-                fileReader.readAsArrayBuffer(audioBlob);
-            });
-        }
-
-        function resampleAudioBuffer(audioBuffer, targetSampleRate) {
-            return new Promise((resolve) => {
-                const sourceSampleRate = audioBuffer.sampleRate;
-                const length = audioBuffer.length * targetSampleRate / sourceSampleRate;
-                const offlineContext = new OfflineAudioContext(
-                    audioBuffer.numberOfChannels, 
-                    length, 
-                    targetSampleRate
-                );
-                
-                const bufferSource = offlineContext.createBufferSource();
-                bufferSource.buffer = audioBuffer;
-                bufferSource.connect(offlineContext.destination);
-                bufferSource.start();
-                
-                offlineContext.startRendering().then(resolve);
-            });
-        }
-
-        function audioBufferToWav(buffer, float32 = false) {
-            const numChannels = buffer.numberOfChannels;
-            const sampleRate = buffer.sampleRate;
-            const format = float32 ? 3 : 1; 
-            const bitDepth = float32 ? 32 : 16;
-            
-            let result;
-            if (float32) {
-                result = interleaveFloat32(buffer.getChannelData(0), numChannels > 1 ? buffer.getChannelData(1) : null);
-            } else {
-                result = interleave16BitPCM(buffer.getChannelData(0), numChannels > 1 ? buffer.getChannelData(1) : null);
-            }
-            
-            return encodeWAV(result, float32, numChannels, sampleRate, bitDepth);
-        }
-
-        function interleave16BitPCM(inputL, inputR) {
-            const isMono = !inputR; // If no right channel, it's mono
-            const length = isMono ? inputL.length : inputL.length + inputR.length;
-            const result = new DataView(new ArrayBuffer(length * 2));
-            
-            let index = 0;
-            
-            for (let i = 0; i < inputL.length; i++) {
-                let sample = Math.max(-1, Math.min(1, inputL[i]));
-                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-                result.setInt16(index * 2, sample, true);
-                index++;
-                
-                // Only process right channel if it exists
-                if (inputR && i < inputR.length) {
-                    sample = Math.max(-1, Math.min(1, inputR[i]));
-                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-                    result.setInt16(index * 2, sample, true);
-                    index++;
-                }
-            }
-            
-            return result;
-        }
-
-        function encodeWAV(samples, float32, numChannels, sampleRate, bitDepth) {
-            const bytesPerSample = bitDepth / 8;
-            const blockAlign = numChannels * bytesPerSample;
-            
-            const buffer = new ArrayBuffer(44 + samples.byteLength);
-            const view = new DataView(buffer);
-            
-            // WAV header
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, 36 + samples.byteLength, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, float32 ? 3 : 1, true); // PCM = 1, FLOAT = 3
-            view.setUint16(22, numChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * blockAlign, true);
-            view.setUint16(32, blockAlign, true);
-            view.setUint16(34, bitDepth, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, samples.byteLength, true);
-            
-            // Copy samples
-            const samplesUint8 = new Uint8Array(samples.buffer);
-            for (let i = 0; i < samplesUint8.length; i++) {
-                view.setUint8(44 + i, samplesUint8[i]);
-            }
-            
-            return new Blob([view], { type: 'audio/wav' });
-        }
-
-        function writeString(view, offset, string) {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        }
-
-        function showPermissionModal() {
-            document.getElementById('permission-modal').style.display = 'flex';
-        }
-
-        function hidePermissionModal() {
-            document.getElementById('permission-modal').style.display = 'none';
-        }
-
-        function showPermissionDeniedModal() {
-            document.getElementById('permission-denied-modal').style.display = 'flex';
-        }
-
-        function hidePermissionDeniedModal() {
-            document.getElementById('permission-denied-modal').style.display = 'none';
-        }
-
-        async function toggleDetect() {
-            if (isDetecting || isProcessing) return;
-
-            // Double-check permission
-            if (!hasMicrophonePermission) {
-                const hasAccess = await testMicrophoneAccess();
-                if (!hasAccess) {
-                    showPermissionModal();
-                    return;
-                }
             }
 
-            startDetection();
-            
-            try {
+            const alerts = document.querySelectorAll('.alert');
+            if (alerts.length > 0) {
+                setTimeout(() => {
+                    alerts.forEach(alert => {
+                        alert.style.transition = 'opacity 0.5s ease';
+                        alert.style.opacity = '0';
+                        setTimeout(() => alert.remove(), 500);
+                    });
+                }, 5000);
+            }
+
+            if (visualizerCanvas) {
+                canvasCtx = visualizerCanvas.getContext('2d');
+                visualizerCanvas.width = visualizerCanvas.offsetWidth;
+                visualizerCanvas.height = visualizerCanvas.offsetHeight;
+            }
+
+            recordButton.addEventListener('click', toggleRecording);
+        });
+
+        async function toggleRecording() {
+            if (!isRecording) {
                 await startRecording();
-                await new Promise(resolve => setTimeout(resolve, 3000)); // Record for 3 seconds
-                await stopRecording();
-                await processAudio();
-            } catch (error) {
-                if (error.name === 'NotAllowedError') {
-                    hasMicrophonePermission = false;
-                    showPermissionModal();
-                } else {
-                    showError('Detection error: ' + error.message);
-                }
-            } finally {
-                stopDetection();
+            } else {
+                stopRecording();
             }
-        }
-
-        function startDetection() {
-            isDetecting = true;
-            isProcessing = true;
-            
-            // Show animations
-            document.getElementById('wave-animation').style.display = 'flex';
-            document.getElementById('status-message').style.display = 'block';
-            document.getElementById('detection-result').style.display = 'none';
-            
-            // Update button
-            const button = document.getElementById('detect-button');
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
-            button.disabled = true;
-            
-            // Add pulse animation to button
-            button.style.animation = 'pulse 1s infinite';
-        }
-
-        function stopDetection() {
-            isDetecting = false;
-            isProcessing = false;
-            
-            // Hide animations
-            document.getElementById('wave-animation').style.display = 'none';
-            document.getElementById('status-message').style.display = 'none';
-            
-            // Reset button
-            const button = document.getElementById('detect-button');
-            button.innerHTML = '<i class="fas fa-microphone"></i><span>Tap to Detect</span>';
-            button.disabled = false;
-            button.style.animation = 'none';
         }
 
         async function startRecording() {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    sampleRate: 16000,
-                    channelCount: 1
-                } 
-            });
+            // FIX 1: Disable button immediately to prevent double-clicks/race conditions
+            recordButton.disabled = true;
             
-            // Remove the forced WAV MIME type - let browser choose best format
-            mediaRecorder = new MediaRecorder(stream);
-            
-            console.log('MediaRecorder mimeType:', mediaRecorder.mimeType);
-            window._lastRecorderMimeType = mediaRecorder.mimeType || '';
-            audioChunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 48000,
+                        channelCount: 2
+                    } 
+                });
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    await processAudio();
+                    stream.getTracks().forEach(track => track.stop());
+                    if (audioContext) {
+                        audioContext.close();
+                        audioContext = null;
+                    }
+                    if (animationId) {
+                        cancelAnimationFrame(animationId);
+                        animationId = null;
+                    }
+                    if (canvasCtx) {
+                        canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+                    }
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordingStartTime = Date.now();
+                
+                // Re-enable button so user can click Stop
+                recordButton.disabled = false;
+                recordButton.classList.add('recording');
+                recordText.textContent = 'Stop Recording';
+                
+                updateTimer();
+                
+                // FIX 2: Clear any existing timer explicitly before starting a new one
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                if (canvasCtx) {
+                    drawVisualizer();
                 }
-            };
 
-            mediaRecorder.start();
+                resultsSection.style.display = 'none';
+                fftSection.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                recordButton.disabled = false; // Re-enable if error occurs
+                if (error.name === 'NotAllowedError') {
+                    showPermissionModal();
+                } else {
+                    showAlert('Error accessing microphone: ' + error.message, 'error');
+                }
+            }
         }
 
-        async function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                return new Promise((resolve) => {
-                    mediaRecorder.onstop = resolve;
-                    mediaRecorder.stop();
-                    
-                    // Stop all tracks
-                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                });
+        function stopRecording() {
+
+            if (!isRecording) return;
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
             }
+            timerDisplay.textContent = '00:00';
+            
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            
+            isRecording = false;
+            
+            recordButton.classList.remove('recording');
+            recordButton.classList.add('processing');
+            recordText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            recordButton.disabled = true;
         }
 
         async function processAudio() {
             if (audioChunks.length === 0) {
-                throw new Error('No audio data recorded');
+                showAlert('No audio data recorded.', 'error');
+                resetUI();
+                return;
             }
 
-            // Get the actual format the browser recorded in
             const actualMimeType = window._lastRecorderMimeType || 'audio/webm';
             const originalBlob = new Blob(audioChunks, { type: actualMimeType });
 
-            console.log('Original recording format:', actualMimeType, 'Size:', originalBlob.size);
-
             try {
-                // Show conversion status
-                const status = document.getElementById('status-message');
-                if (status) {
-                    status.innerHTML = '<p>Converting to WAV format...</p><p class="sub-message">Optimizing for analysis</p>';
-                }
-
-                console.log('Converting to WAV...');
-                const wavBlob = await convertToWav(originalBlob);
-                
-                console.log('WAV conversion successful:', {
-                    originalSize: originalBlob.size,
-                    wavSize: wavBlob.size,
-                    wavType: wavBlob.type
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Request timeout after 30 seconds')), 60000);
                 });
 
                 const formData = new FormData();
-                formData.append('audio', wavBlob, 'recording.wav');
+                formData.append('audio', originalBlob, 'recording.webm');
                 formData.append('original_format', actualMimeType);
 
-                const response = await fetch('/detect', {
+                const fetchPromise = fetch('/record', {
                     method: 'POST',
                     body: formData
                 });
 
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+
                 if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error(text || 'Network response was not ok');
+                    throw new Error('Network response was not ok');
                 }
 
                 const result = await response.json();
 
                 if (result.success) {
-                    showResult(result);
+                    displayResults(result);
                 } else {
-                    showError(result.error || 'Detection failed');
+                    throw new Error(result.error || 'Detection failed');
                 }
+
             } catch (error) {
                 console.error('Audio processing error:', error);
-                showError('Audio processing failed: ' + error.message);
+                showAlert(error.message, 'error');
+            } finally {
+                resetUI();
             }
         }
 
-        function showResult(result) {
-            document.getElementById('detection-result').style.display = 'block';
+        function displayResults(result) {
+            document.getElementById('recordingName').textContent = result.filename || 'recording.wav';
+            document.getElementById('predictedClass').textContent = result.predicted_class || 'Unknown';
             
-            // Update result display
-            document.getElementById('detection-type').textContent = result.predicted_class;
-            document.getElementById('detection-confidence').textContent = result.confidence + '% confidence';
-            document.getElementById('snr-value').textContent = 'SNR: ' + (result.snr_metrics?.snr_db || 0) + ' dB';
-            document.getElementById('snr-quality').textContent = result.snr_metrics?.quality || 'Unknown';
-            
-            // Set colors based on sound class
-            const resultCard = document.getElementById('result-card');
-            const icon = document.getElementById('result-icon');
-            const snrQuality = document.getElementById('snr-quality');
-            
-            // Set icon and colors
-            const classInfo = getClassInfo(result.predicted_class);
-            icon.className = classInfo.icon;
-            resultCard.style.borderColor = classInfo.color + '80'; // 50% opacity
-            snrQuality.className = 'quality-badge ' + getSNRQualityClass(result.snr_metrics?.snr_db || 0);
-            
-            // Show snackbar-like notification
-            showNotification(result);
+            resultsSection.style.display = 'block';
+            resultsSection.style.animation = 'fadeIn 0.5s ease-out';
 
-            // Display spectrogram image if available
-            const specContainer = document.getElementById('spectrogram-container');
-            const specImg = document.getElementById('spectrogram-img');
-            if (result.spectrogram_url) {
-                specImg.src = result.spectrogram_url;
-                specContainer.style.display = 'block';
+            if (result.warning === "fix this part") {
+                showAlert(`Audio analyzed successfully! Predicted: ${result.predicted_class} (${result.warning})`, 'success', true);
             } else {
-                specContainer.style.display = 'none';
+                showAlert(`Audio analyzed successfully! Predicted: ${result.predicted_class} (${result.confidence}%)`, 'success', false);
+            }
+            
+            if (result.fft_original) {
+                displayFFTAnalysis(result);
+            }
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function displayFFTAnalysis(result) {
+            console.log("Result received:", result);
+
+            fftSection.style.display = 'block';
+            fftSection.style.animation = 'fadeIn 0.5s ease-out';
+
+            const originalAudio = document.getElementById('originalAudio');
+            const downloadOriginal = document.getElementById('downloadOriginal');
+
+            // ===== ORIGINAL AUDIO (ALWAYS FROM BASE64) =====
+            // Removed the else block that handled missing data errors
+            if (result.audio_original_base64) {
+                const audioDataUrl = `data:audio/wav;base64,${result.audio_original_base64}`;
+                originalAudio.src = audioDataUrl;
+                downloadOriginal.href = audioDataUrl;
+                downloadOriginal.download = result.filename || 'recording_original.wav';
+
+                document.getElementById('originalAudioInfo').textContent =
+                    `Duration: ${result.total_duration ? result.total_duration.toFixed(1) + 's' : 'Unknown'}`;
+
+                console.log("Original audio loaded from base64");
             }
 
-            // Draw SNR time-series if available
-            const snrContainer = document.getElementById('snr-chart-container');
-            if (result.snr_metrics && result.snr_metrics.snr_values_over_time && result.snr_metrics.time_bins) {
-                snrContainer.style.display = 'block';
-                drawSNRChart(result.snr_metrics.time_bins, result.snr_metrics.snr_values_over_time);
-                // Open detailed analysis in a new tab (POST realtime data)
-                postRealtimeAnalysis(result);
+            // ===== CLEANED AUDIO (ONLY IF AVAILABLE) =====
+            // Removed the else block that hid the card if no audio was found
+            if (result.audio_cleaned_base64) {
+                processedAudioCard.style.display = 'block';
+
+                // Use appropriate label based on cleaning method
+                let processedLabel = "Processed Audio";
+                if (result.cleaning_method) {
+                    if (result.cleaning_method.includes('unet')) {
+                        processedLabel = "Denoised Audio (U-Net)";
+                    } else if (result.cleaning_method.includes('demucs')) {
+                        processedLabel = "Voice Removed Audio";
+                    } else if (result.cleaning_method.includes('tasnet')) {
+                        processedLabel = "Reduced Audio";
+                    } else if (result.cleaning_method.includes('voice_removed')) {
+                        processedLabel = "Voice Removed Audio";
+                    }
+                }
+                document.getElementById('processedLabel').textContent = processedLabel;
+
+                const processedAudio = document.getElementById('processedAudio');
+                const downloadProcessed = document.getElementById('downloadProcessed');
+
+                // Create data URL from base64
+                const audioDataUrl = `data:audio/wav;base64,${result.audio_cleaned_base64}`;
+                processedAudio.src = audioDataUrl;
+
+                // Set download link
+                let cleanedFilename = 'recording_cleaned.wav';
+                if (result.filename) {
+                    // Create better filename based on cleaning method
+                    const method = result.cleaning_method || 'cleaned';
+                    const methodShort = method.includes('tasnet') ? 'tasnet' : 
+                                    method.includes('unet') ? 'unet' : 
+                                    method.includes('demucs') ? 'demucs' : 'cleaned';
+                    cleanedFilename = result.filename.replace('.wav', `_${methodShort}.wav`);
+                }
+                downloadProcessed.href = audioDataUrl;
+                downloadProcessed.download = cleanedFilename;
+
+                // Show cleaning status with TasNet-specific message
+                let statusText = "Processing status unknown";
+                if (result.cleaning_success) {
+                    statusText = "✓ Audio cleaning successful";
+                    if (result.cleaning_method) {
+                        if (result.cleaning_method.includes('tasnet')) {
+                            statusText = "Reduction successful";
+                        } else {
+                            statusText += ` (${result.cleaning_method})`;
+                        }
+                    }
+                } else if (result.cleaning_attempted && result.cleaning_error) {
+                    statusText = `⚠ Cleaning attempted but failed: ${result.cleaning_error.substring(0, 50)}...`;
+                } else if (result.cleaning_attempted) {
+                    statusText = "⚠ Cleaning attempted";
+                }
+
+                document.getElementById('processedAudioInfo').textContent = statusText;
+
+                console.log("Cleaned audio loaded from base64");
+
+                // Show appropriate alert
+                if (result.cleaning_success) {
+                    if (result.cleaning_method && result.cleaning_method.includes('tasnet')) {
+                        showAlert('Reduction successful!', 'success');
+                    } else {
+                        showAlert('✓ Audio cleaning successful!', 'success');
+                    }
+                } else if (result.cleaning_attempted) {
+                    showAlert('Audio cleaning attempted', result.cleaning_success ? 'success' : 'warning');
+                }
+            }
+
+            // Draw FFT chart
+            // Removed the fallback check (|| result.fft_data_original)
+            if (result.fft_original) {
+                drawFFTChart(result);
             } else {
-                snrContainer.style.display = 'none';
+                console.warn("No FFT data available for chart");
+            }
+
+            // Ensure only one audio plays at a time
+            const originalAudioPlayer = document.getElementById('originalAudio');
+            const processedAudioPlayer = document.getElementById('processedAudio');
+            if (originalAudioPlayer && processedAudioPlayer) {
+                originalAudioPlayer.addEventListener('play', () => {
+                    if (!processedAudioPlayer.paused) processedAudioPlayer.pause();
+                });
+                processedAudioPlayer.addEventListener('play', () => {
+                    if (!originalAudioPlayer.paused) originalAudioPlayer.pause();
+                });
             }
         }
 
-        // POST realtime SNR data to /snr-analysis and open in new tab
-        function postRealtimeAnalysis(result) {
-            try {
-                const payload = result.snr_metrics || result.snr_analysis || {};
-                // Normalize to expected keys
-                const snr_values = payload.snr_values_over_time || payload.snr_over_time;
-                const time_bins = payload.time_bins || payload.time_bins;
-                const total_duration = payload.total_duration || payload.total_duration;
-
-                const data = {
-                    snr_values_over_time: payload.snr_values_over_time || payload.snr_over_time,
-                    snr_over_time: payload.snr_over_time || payload.snr_values_over_time,
-                    time_bins: payload.time_bins,
-                    total_duration: payload.total_duration
+        function drawFFTChart(result) {
+            console.log("=== FFT CHART FUNCTION START ===");
+            console.log("Full result object:", JSON.stringify(result, null, 2));
+            
+            console.log("Result keys:", Object.keys(result));
+            
+            console.log("Has fft_original?", !!result.fft_original);
+            console.log("Has fft_data_original?", !!result.fft_data_original);
+            console.log("Has fft_processed?", !!result.fft_data_cleaned);
+            
+            const fftData = result.fft_original || result.fft_data_original || result.fft_data_cleaned;
+            console.log("Using FFT data from:", result.fft_original ? "fft_original" : "fft_data_original");
+            
+            if (!fftData) {
+                console.error("ERROR: No FFT data found in result!");
+                console.error("Available keys in result:", Object.keys(result));
+                
+                const fftKeys = Object.keys(result).filter(key => key.toLowerCase().includes('fft'));
+                console.error("FFT-related keys found:", fftKeys);
+                
+                if (fftKeys.length > 0) {
+                    console.error("First FFT key contents:", result[fftKeys[0]]);
+                }
+                
+                return;
+            }
+            
+            console.log("FFT data object:", fftData);
+            console.log("FFT data type:", typeof fftData);
+            
+            if (typeof fftData === 'object') {
+                console.log("FFT data keys:", Object.keys(fftData));
+                console.log("Has frequencies?", !!fftData.frequencies);
+                console.log("Has magnitude?", !!fftData.magnitude);
+                
+                if (fftData.frequencies) {
+                    console.log("Frequencies length:", fftData.frequencies.length);
+                    console.log("First 5 frequencies:", fftData.frequencies.slice(0, 5));
+                }
+                
+                if (fftData.magnitude) {
+                    console.log("Magnitude length:", fftData.magnitude.length);
+                    console.log("First 10 magnitude values:", fftData.magnitude.slice(0, 10));
+                    
+                    const mags = fftData.magnitude;
+                    if (mags.length > 0) {
+                        const minMag = Math.min(...mags);
+                        const maxMag = Math.max(...mags);
+                        const avgMag = mags.reduce((a, b) => a + b, 0) / mags.length;
+                        
+                        console.log("Magnitude Statistics:");
+                        console.log("  Min:", minMag, "dB");
+                        console.log("  Max:", maxMag, "dB");
+                        console.log("  Avg:", avgMag, "dB");
+                        console.log("  Range:", maxMag - minMag, "dB");
+                        
+                        const invalidValues = mags.filter(v => !Number.isFinite(v));
+                        console.log("Invalid (NaN/Inf) values:", invalidValues.length);
+                        
+                        const allNegative = mags.every(v => v < 0);
+                        console.log("All values negative?", allNegative);
+                        
+                        const allVeryLow = mags.every(v => v < -100);
+                        console.log("All values < -100 dB?", allVeryLow);
+                        
+                        if (allVeryLow) {
+                            console.warn("WARNING: All FFT values are extremely low (< -100 dB)");
+                            console.warn("This suggests the audio was too quiet or FFT calculation is incorrect");
+                            
+                            const testOffset = 100;
+                            const testValues = mags.map(v => v + testOffset);
+                            console.log("Test: Values +", testOffset, "dB -> Max:", Math.max(...testValues));
+                        }
+                        
+                        if (maxMag - minMag < 10) {
+                            console.warn("WARNING: Very small dynamic range (< 10 dB)");
+                        }
+                    }
+                }
+            }
+            
+            const chartCanvas = document.getElementById('fftCombinedChart');
+            if (!chartCanvas) {
+                console.error("ERROR: Canvas element 'fftCombinedChart' not found!");
+                return;
+            }
+            
+            if (chartCanvas.chart) {
+                console.log("Destroying existing chart");
+                chartCanvas.chart.destroy();
+            }
+            
+            const fftOriginal = fftData;
+            const fftProcessed = result.fft_data_cleaned;
+            
+            console.log("Processing FFT data for chart...");
+            
+        function sampleFFTData(fftData, maxPoints = 800) {
+            if(!fftData || !fftData.frequencies || !fftData.magnitude) {
+                console.error('Invalid FFT data for sampling:', fftData);
+                return { frequencies: [], magnitude: [] };
+            }
+            
+            console.log(`Sampling FFT data: ${fftData.frequencies.length} points -> ${maxPoints} points`);
+            
+            if (fftData.frequencies.length <= maxPoints) {
+                console.log("No sampling needed, data already small enough");
+                return {
+                    frequencies: fftData.frequencies.map(f => parseFloat(f).toFixed(0)),
+                    magnitude: fftData.magnitude
                 };
-
-                // Create a form and submit to /snr-analysis with target _blank
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/snr-analysis';
-                form.target = '_blank';
-
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'snr_data';
-                input.value = JSON.stringify(data);
-                form.appendChild(input);
-
-                document.body.appendChild(form);
-                form.submit();
-                form.remove();
-            } catch (e) {
-                console.error('Failed to post realtime analysis:', e);
             }
+            
+            const sampleRate = Math.ceil(fftData.frequencies.length / maxPoints);
+            const sampledFrequencies = [];
+            const sampledMagnitude = [];
+            
+            for (let i = 0; i < fftData.frequencies.length; i += sampleRate) {
+                sampledFrequencies.push(parseFloat(fftData.frequencies[i]).toFixed(0));
+                sampledMagnitude.push(fftData.magnitude[i]);
+            }
+            
+            console.log(`Sampled ${sampledFrequencies.length} points (rate: ${sampleRate}x)`);
+            return { frequencies: sampledFrequencies, magnitude: sampledMagnitude };
+        }
+        
+        const originalSampled = sampleFFTData(fftOriginal);
+        console.log("Original sampled data:", originalSampled);
+        
+        if (originalSampled.magnitude.length === 0) {
+            console.error("ERROR: No magnitude data after sampling!");
+            return;
+        }
+        
+        const mags = originalSampled.magnitude;
+        const dataMin = Math.min(...mags);
+        const dataMax = Math.max(...mags);
+        const dataRange = dataMax - dataMin;
+        
+        console.log("Data range for Y-axis:", { dataMin, dataMax, dataRange });
+        
+        let yMin, yMax;
+        
+        if (dataRange < 20) {
+            const center = (dataMin + dataMax) / 2;
+            yMin = center - 20;
+            yMax = center + 10;
+            console.log("Small data range, using centered Y-axis:", { yMin, yMax });
+        } else {
+            yMin = Math.floor(dataMin / 10) * 10 - 10;
+            yMax = Math.ceil(dataMax / 10) * 10 + 10;
+            console.log("Normal data range, using padded Y-axis:", { yMin, yMax });
+        }
+        
+        yMin = Math.max(yMin, -120);
+        yMax = Math.min(yMax, 20);
+        
+        if (yMax - yMin < 20) {
+            console.log("Forcing minimum 20dB range");
+            yMin = -100;
+            yMax = 0;
+        }
+        
+        console.log("Final Y-axis range:", { yMin, yMax });
+        
+        const ctxCombined = chartCanvas.getContext('2d');
+        
+        Chart.defaults.color = '#000000';
+        Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+        
+        const datasets = [{
+            label: 'Original Recording',
+            data: originalSampled.magnitude,
+            borderColor: '#1D2545',
+            backgroundColor: 'rgba(33, 3, 132, 0.1)',
+            borderWidth: 2,
+            tension: 0,
+            fill: true,
+            pointRadius: 0,
+            order: 2
+        }];
+
+        let labels = originalSampled.frequencies;
+        
+        if (fftProcessed && fftProcessed.frequencies && fftProcessed.magnitude) {
+            console.log("Adding processed FFT data");
+            const processedSampled = sampleFFTData(fftProcessed);
+            datasets.push({
+                label: result.processed_label || 'Processed Audio',
+                data: processedSampled.magnitude,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderWidth: 2,
+                tension: 0,
+                fill: false,
+                pointRadius: 0,
+                order: 1
+            });
+        } else {
+            console.log("No processed FFT data available");
         }
 
-        // Chart.js instance for SNR chart
-        let snrChart = null;
-        function drawSNRChart(timeBins, snrValues) {
-            const ctx = document.getElementById('snr-chart').getContext('2d');
-            const labels = timeBins.map(t => (Math.round(t * 100) / 100).toString());
-
-            const data = {
-                labels: labels,
-                datasets: [{
-                    label: 'SNR (dB)',
-                    data: snrValues,
-                    borderColor: 'rgba(33,150,243,1)',
-                    backgroundColor: 'rgba(33,150,243,0.1)',
-                    tension: 0.2,
-                    pointRadius: 0
-                }]
-            };
-
-            const config = {
+        console.log("Creating chart with", datasets.length, "dataset(s)");
+        console.log("Labels length:", labels.length);
+        console.log("First dataset length:", datasets[0].data.length);
+        
+        try {
+            chartCanvas.chart = new Chart(ctxCombined, {
                 type: 'line',
-                data: data,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        x: { display: true, title: { display: true, text: 'Time (s)' } },
-                        y: { display: true, title: { display: true, text: 'SNR (dB)' } }
+                    animation: {
+                        duration: 0
                     },
-                    plugins: { legend: { display: false } }
-                }
-            };
-
-            if (snrChart) {
-                snrChart.data = data;
-                snrChart.update();
-            } else {
-                snrChart = new Chart(ctx, config);
-            }
-        }
-
-        function getClassInfo(className) {
-            const classes = {
-                'SpeedBoat': { icon: 'fas fa-ship', color: '#4CAF50' },
-                'UUV': { icon: 'fas fa-satellite', color: '#2196F3' },
-                'KaiYuan': { icon: 'fas fa-anchor', color: '#FF9800' },
-                'Unknown': { icon: 'fas fa-question-circle', color: '#9E9E9E' }
-            };
-            return classes[className] || classes['Unknown'];
-        }
-
-        function getSNRQualityClass(snrDb) {
-            if (snrDb >= 25) return 'excellent';
-            if (snrDb >= 20) return 'good';
-            if (snrDb >= 15) return 'fair';
-            if (snrDb >= 10) return 'poor';
-            return 'very-poor';
-        }
-
-        function showNotification(result, type = 'result') {
-            if (type === 'success') {
-                // Create success toast
-                const toast = document.createElement('div');
-                toast.className = 'toast-notification success';
-                toast.innerHTML = `
-                    <div class="toast-content">
-                        <strong>${result}</strong>
-                    </div>
-                    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-                `;
-                document.body.appendChild(toast);
-                
-                setTimeout(() => toast.remove(), 3000);
-                return;
-            }
-
-            // Create result toast
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification ' + getClassInfo(result.predicted_class).color.replace('#', '');
-            toast.innerHTML = `
-                <div class="toast-content">
-                    <strong>Detected: ${result.predicted_class} (${result.confidence}%)</strong>
-                    ${result.snr_metrics ? `<br>SNR: ${result.snr_metrics.snr_db} dB (${result.snr_metrics.quality})` : ''}
-                </div>
-                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            // Auto remove after 6 seconds
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.remove();
-                }
-            }, 6000);
-        }
-
-        function showError(message) {
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification error';
-            toast.innerHTML = `
-                <div class="toast-content">
-                    <strong>Detection Failed:</strong> ${message}
-                </div>
-                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.remove();
-                }
-            }, 4000);
-        }
-
-        // Logout functionality
-        function showLogoutConfirmation() {
-            document.getElementById('logout-modal').style.display = 'flex';
-        }
-
-        function hideLogoutConfirmation() {
-            document.getElementById('logout-modal').style.display = 'none';
-        }
-
-        function logout() {
-            window.location.href = "{{ url_for('logout') }}";
-        }
-
-        // Close modals when clicking outside
-        window.addEventListener('click', function(event) {
-            const modals = ['permission-modal', 'permission-denied-modal', 'logout-modal'];
-            modals.forEach(modalId => {
-                const modal = document.getElementById(modalId);
-                if (event.target === modal) {
-                    modal.style.display = 'none';
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { 
+                            display: true, 
+                            labels: { 
+                                color: '#000000',
+                                font: {
+                                    size: 12,
+                                    family: "'Inter', sans-serif"
+                                }
+                            } 
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#000000',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y.toFixed(2);
+                                    return `${label}: ${value} dB`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { 
+                                display: true, 
+                                text: 'Frequency (Hz)', 
+                                color: '#000',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
+                                }
+                            },
+                            ticks: { 
+                                color: '#666', 
+                                maxTicksLimit: 12,
+                                font: {
+                                    size: 10,
+                                    family: "'Inter', sans-serif"
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: 'Magnitude (dB)', 
+                                color: '#000',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold',
+                                    family: "'Inter', sans-serif"
+                                }
+                            },
+                            min: yMin,
+                            max: yMax,
+                            ticks: { 
+                                color: '#000000',
+                                font: {
+                                    size: 10,
+                                    family: "'Inter', sans-serif"
+                                },
+                                callback: function(value) {
+                                    return value + ' dB';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    }
                 }
             });
+            
+            console.log("Chart created successfully!");
+            console.log("Chart data ranges:");
+            datasets.forEach((dataset, idx) => {
+                if (dataset.data.length > 0) {
+                    const min = Math.min(...dataset.data);
+                    const max = Math.max(...dataset.data);
+                    console.log(`  Dataset ${idx} (${dataset.label}): ${min.toFixed(2)} to ${max.toFixed(2)} dB`);
+                }
+            });
+            
+        } catch (error) {
+            console.error("ERROR creating chart:", error);
+            console.error("Error details:", error.message);
+            
+            try {
+                console.log("Creating fallback test chart...");
+                
+                const testData = {
+                    labels: ['100', '500', '1000', '2000', '3000', '4000', '5000'],
+                    datasets: [{
+                        label: 'Test Data',
+                        data: [-40, -60, -50, -70, -65, -55, -45],
+                        borderColor: '#ff0000',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                };
+                
+                chartCanvas.chart = new Chart(ctxCombined, {
+                    type: 'line',
+                    data: testData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                console.log("Fallback test chart created");
+            } catch (fallbackError) {
+                console.error("Even fallback chart failed:", fallbackError);
+            }
+        }
+    }
+    
+    console.log("=== FFT CHART FUNCTION END ===");
+
+        function drawVisualizer() {
+            if (!analyser || !canvasCtx) return;
+            animationId = requestAnimationFrame(drawVisualizer);
+            analyser.getByteFrequencyData(dataArray);
+            const width = visualizerCanvas.width;
+            const height = visualizerCanvas.height;
+            canvasCtx.clearRect(0, 0, width, height);
+            const barWidth = (width / dataArray.length) * 2.5;
+            let barHeight;
+            let x = 0;
+            const gradient = canvasCtx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#1D2545');
+            gradient.addColorStop(1, '#4a23c9');
+            
+            for (let i = 0; i < dataArray.length; i++) {
+                barHeight = dataArray[i] / 2;
+                canvasCtx.fillStyle = gradient;
+                canvasCtx.fillRect(x, height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            timerDisplay.textContent = `${minutes}:${seconds}`;
+        }
+
+        function resetUI() {
+            recordButton.classList.remove('recording', 'processing');
+            recordText.textContent = 'Start Recording';
+            recordButton.disabled = false;
+            timerDisplay.textContent = '00:00';
+            isRecording = false;
+            audioChunks = [];
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try { mediaRecorder.stop(); } catch (e) { console.log(e); }
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            if (canvasCtx) {
+                canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+            }
+        }
+
+        function showAlert(message, type = 'info', isPermanent = false) {
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            let icon = 'info-circle';
+            if (type === 'error') icon = 'exclamation-triangle';
+            if (type === 'success') icon = 'check-circle';
+            
+            alertDiv.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            const recordingWrapper = document.querySelector('.recording-wrapper');
+            if (recordingWrapper && recordingWrapper.parentNode) {
+                recordingWrapper.parentNode.insertBefore(alertDiv, recordingWrapper.nextSibling);
+            }
+            if (!isPermanent) {
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.style.transition = 'opacity 0.5s ease';
+                        alertDiv.style.opacity = '0';
+                        setTimeout(() => alertDiv.remove(), 500);
+                    }
+                }, 5000);
+            }
+        }
+
+        function showPermissionModal() { permissionModal.style.display = 'flex'; }
+        function hidePermissionModal() { permissionModal.style.display = 'none'; }
+        function requestMicrophonePermission() {
+            hidePermissionModal();
+        }
+        function showLogoutConfirmation() { document.getElementById('logout-modal').style.display = 'flex'; }
+        function hideLogoutConfirmation() { document.getElementById('logout-modal').style.display = 'none'; }
+        function logout() { window.location.href = "{{ url_for('logout') }}"; }
+        window.addEventListener('click', function(event) {
+            if (event.target === permissionModal) hidePermissionModal();
+            if (event.target === document.getElementById('logout-modal')) hideLogoutConfirmation();
         });
     </script>
-
-    <style>
-        /* Permission modal styles */
-        .permission-icon {
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        .permission-icon i {
-            font-size: 3rem;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .permission-icon.denied i {
-            background: linear-gradient(135deg, #f44336, #FF9800);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* Add to existing modal styles */
-        .modal-content h3 {
-            text-align: center;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        .modal-content p {
-            text-align: center;
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-            line-height: 1.5;
-        }
-
-        /* Success toast */
-        .toast-notification.success {
-            border-left-color: #4CAF50;
-        }
-    </style>
 </body>
 </html>

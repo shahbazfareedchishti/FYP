@@ -8,81 +8,391 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <link rel="icon" href="{{ url_for('static', filename='images/anchor.png') }}" type="image/png">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <style>
+        /* --- LAYOUT STYLES (Header & Sidebar) --- */
+        .simple-header {
+            background: #1D2545;
+            color: white;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            height: 70px;
+            box-sizing: border-box;
+        }
+
+        .header-left {
+            width: 70px; 
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .header-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .header-center i { font-size: 1.4rem; }
+
+        .header-right {
+            padding-right: 30px; 
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+        }
+        
+        .toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toggle-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .app-container {
+            display: flex;
+            height: calc(100vh - 70px);
+            width: 100%;
+            overflow: hidden;
+            flex-direction: row;
+        }
+
+        .content-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100%;
+            background: #1D2545;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed { width: 70px; }
+
+        .sidebar.collapsed .sidebar-menu li a span {
+            display: none;
+            opacity: 0;
+        }
+
+        .sidebar.collapsed .sidebar-menu li a {
+            justify-content: center;
+            padding: 15px 0;
+        }
+        
+        .sidebar.collapsed .sidebar-menu li a i { 
+            margin-right: 0; 
+            font-size: 1.2rem; 
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+            padding: 0;
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .sidebar-menu li a i {
+            margin-right: 15px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .sidebar-menu li.active a,
+        .sidebar-menu li a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        /* --- LOGS SPECIFIC STYLES --- */
+        .logs-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .logs-header {
+            margin-bottom: 2rem;
+            color: #333;
+        }
+        
+        .logs-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logs-header p {
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            color: #666;
+            border: 1px dashed #ccc;
+        }
+
+        .logs-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .log-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .log-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .log-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #f0f4f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #1D2545;
+            flex-shrink: 0;
+        }
+
+        .log-content {
+            flex-grow: 1;
+        }
+
+        .log-header h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .log-title.noise {
+            color: #666;
+        }
+
+        .log-details {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+            /* CHANGED: Explicitly set to Black */
+            color: #000000; 
+        }
+
+        .log-details span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        /* Ensure icons inside log details match text color */
+        .log-details i {
+            color: #000000;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
 </head>
 <body>
+    <header class="simple-header">
+        <div class="header-left">
+            <button id="sidebar-toggle" class="toggle-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="header-center">
+            <i class="fas fa-anchor"></i>
+        </div>
+
+        <div class="header-right">
+            <div class="header-user">
+                <i class="fas fa-user-circle"></i>
+                <span>{{ session.username }}</span>
+            </div>
+        </div>
+    </header>
+
     <div class="app-container">
-        <!-- Navigation Sidebar -->
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <div class="app-logo">
-                    <i class="fas fa-anchor"></i>
-                    <span>Sound Detector</span>
-                </div>
-                <div class="user-info">
-                    Welcome, {{ session.username }}!
-                </div>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="{{ url_for('main') }}"><i class="fas fa-home"></i> Home</a></li>
-                <li class="active"><a href="{{ url_for('logs') }}"><i class="fas fa-history"></i> Logs</a></li>
-                <li><a href="{{ url_for('manage_account') }}"><i class="fas fa-user-cog"></i> Manage Account</a></li>
-                <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-            </ul>
-        </nav>
+        <div class="content-wrapper">
+            <nav class="sidebar collapsed" id="sidebar">
+                <ul class="sidebar-menu">
+                    <li><a href="{{ url_for('main') }}"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li><a href="{{ url_for('upload') }}"><i class="fas fa-file-upload"></i> <span>Upload & Analyze</span></a></li>
+                    <li class="active"><a href="{{ url_for('logs') }}"><i class="fas fa-history"></i> <span>Logs</span></a></li>
+                    <li><a href="{{ url_for('manage_account') }}"><i class="fas fa-user-cog"></i> <span>Manage Account</span></a></li>
+                    <li><a href="#" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
+                </ul>
+            </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="logs-container">
-                <div class="logs-header">
-                    <h1><i class="fas fa-history"></i> Detection Logs</h1>
-                    <p>Your sound detection history</p>
-                </div>
-
-                {% if not detections %}
-                <div class="empty-state">
-                    <i class="fas fa-waves" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                    <h3>No detections yet</h3>
-                    <p>Start detecting sounds to see them here!</p>
-                    <a href="{{ url_for('main') }}" class="btn-primary" style="margin-top: 1rem;">
-                        <i class="fas fa-microphone"></i> Start Detecting
-                    </a>
-                </div>
-                {% else %}
-                <div class="logs-list">
-                    {% for detection in detections %}
-                    <div class="log-card" data-sound-class="{{ detection.sound_class }}">
-                        <div class="log-icon">
-                            <i class="{{ detection.sound_class | get_sound_icon }}"></i>
-                        </div>
-                        <div class="log-content">
-                            <div class="log-header">
-                                <h3 class="log-title {{ 'noise' if detection.sound_class == 'Noise' else '' }}">
-                                    {{ detection.sound_class }}
-                                </h3>
-                                <span class="log-confidence {{ 'noise' if detection.sound_class == 'Noise' else '' }}">
-                                    {{ "%.1f"|format(detection.confidence) }}%
-                                </span>
-                            </div>
-                            <div class="log-details">
-                                <span class="log-timestamp">
-                                    <i class="fas fa-clock"></i>
-                                    {{ detection.timestamp | format_datetime }}
-                                </span>
-                                {% if detection.latitude and detection.longitude %}
-                                <span class="log-location">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    {{ "%.4f, %.4f"|format(detection.latitude, detection.longitude) }}
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
+            <main class="main-content">
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <h1><i class="fas fa-history"></i> Detection Logs</h1>
                     </div>
-                    {% endfor %}
+
+                    {% if not detections %}
+                    <div class="empty-state">
+                        <i class="fas fa-waves" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <h3>No detections yet</h3>
+                        <p>Start detecting sounds to see them here!</p>
+                        <a href="{{ url_for('main') }}" class="btn-primary" style="margin-top: 1rem;">
+                            <i class="fas fa-microphone"></i> Start Detecting
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="logs-list">
+                        {% for detection in detections %}
+                        <div class="log-card" data-sound-class="{{ detection.sound_class }}">
+                            <div class="log-icon">
+                                <i class="{{ detection.sound_class | get_sound_icon }}"></i>
+                            </div>
+                            <div class="log-content">
+                                <div class="log-header">
+                                    <h3 class="log-title {{ 'noise' if detection.sound_class == 'Noise' else '' }}">
+                                        {{ detection.sound_class }}
+                                    </h3>
+                                </div>
+                                <div class="log-details">
+                                    <span class="log-timestamp">
+                                        <i class="fas fa-clock"></i>
+                                        {{ detection.timestamp }}
+                                    </span>
+                                    {% if detection.latitude and detection.longitude %}
+                                    <span class="log-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ "%.4f, %.4f"|format(detection.latitude, detection.longitude) }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
+
+    <div id="logout-modal" class="modal" style="display: none;">
+        <div class="modal-content centered-modal">
+            <div class="modal-icon logout-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3>Ready to leave?</h3>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideLogoutConfirmation()">Cancel</button>
+                <button class="btn-danger" onclick="logout()">
+                    </i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SIDEBAR TOGGLE LOGIC
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            if(toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+        });
+
+        // LOGOUT MODAL LOGIC
+        function showLogoutConfirmation() {
+            document.getElementById('logout-modal').style.display = 'flex';
+        }
+
+        function hideLogoutConfirmation() {
+            document.getElementById('logout-modal').style.display = 'none';
+        }
+
+        function logout() {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+
+        window.addEventListener('click', function(event) {
+            const modals = ['permission-modal', 'permission-denied-modal', 'logout-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

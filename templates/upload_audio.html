@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Audio - Sound Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='images/anchor.png') }}" type="image/png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <style>
+        /* --- TEMPLATE LAYOUT STYLES (Header & Sidebar) --- */
+        .simple-header {
+            background: #1D2545;
+            color: white;
+            padding: 0; 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            height: 70px;
+            box-sizing: border-box;
+        }
+
+        .header-left {
+            width: 70px; 
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center; 
+            flex-shrink: 0;
+        }
+
+        .header-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .header-center i { font-size: 1.4rem; }
+
+        .header-right {
+            padding-right: 30px; 
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+        }
+        
+        .toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .toggle-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .app-container {
+            display: flex;
+            height: calc(100vh - 70px); 
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .content-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100%;
+            background: #1D2545;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed { width: 70px; }
+        
+        .sidebar.collapsed .sidebar-menu li a span,
+        .sidebar.collapsed .sidebar-footer span {
+            display: none;
+            opacity: 0;
+        }
+
+        .sidebar.collapsed .sidebar-menu li a {
+            justify-content: center;
+            padding: 15px 0;
+        }
+        .sidebar.collapsed .sidebar-menu li a i {
+            margin-right: 0;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .sidebar-menu li a i {
+            margin-right: 15px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .sidebar-menu li.active a,
+        .sidebar-menu li a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+            padding: 0; 
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+        }
+
+        /* --- UPLOAD PAGE STYLES --- */
+        .upload-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
+            color: #333; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .file-upload-wrapper div { color: #ffffff !important; }
+        .result-content p { color: #ffffff; }
+
+        .upload-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .upload-header h1 {
+            color: #000000;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-header p {
+            color: #a0aec0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .file-upload-wrapper {
+            border: 2px dashed #ffffff; 
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #1D2545; 
+        }
+
+        .file-upload-wrapper i {
+            color: #ffffff !important;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            color: #fff;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .result-card-item {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            background: #1D2545;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 5px solid #4CAF50;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left-width: 5px;
+        }
+
+        .result-icon {
+            font-size: 1.5rem;
+            color: #ffffff;
+            margin-right: 1rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .result-content h4 {
+            margin: 0;
+            color: #a0aec0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-content p {
+            margin: 5px 0 0 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .fft-section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgb(0, 0, 0);
+        }
+
+        .fft-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Styles for side-by-side audio players */
+        .players-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .audio-player-card {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(33, 3, 132, 0.05); /* Slight tint for contrast */
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .audio-player-card h3 {
+            margin: 0 0 1rem 0;
+            color: #000000;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audio-player {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .audio-info {
+            font-size: 0.85rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-error { background: rgba(198, 40, 40, 0.2); color: #d32f2f; border: 1px solid #e57373; }
+        .alert-success { background: rgba(46, 125, 50, 0.2); color: #2e7d32; border: 1px solid #81c784; }
+        .alert-info { background: rgba(21, 101, 192, 0.2); color: #1565c0; border: 1px solid #64b5f6; }
+        .alert-warning { background: rgba(255, 143, 0, 0.2); color: #ff8f00; border: 1px solid #ffb74d; }
+
+        .download-btn {
+            background: #1D2545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #45a049;
+        }
+
+        input[type="checkbox"] {
+            accent-color: #2196F3;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <header class="simple-header">
+        <div class="header-left">
+            <button id="sidebar-toggle" class="toggle-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="header-center">
+            <i class="fas fa-anchor"></i>
+        </div>
+
+        <div class="header-right">
+            <div class="header-user">
+                <i class="fas fa-user-circle"></i>
+                <span>{{ session.username if session.get('username') else 'User' }}</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <div class="content-wrapper">
+            <nav class="sidebar collapsed" id="sidebar">
+                <ul class="sidebar-menu" style="margin-top: 20px;">
+                    <li><a href="{{ url_for('main') }}"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li class="active"><a href="{{ url_for('upload') }}"><i class="fas fa-file-upload"></i> <span>Upload & Analyze</span></a></li>
+                    <li><a href="{{ url_for('logs') }}"><i class="fas fa-history"></i> <span>Logs</span></a></li>
+                    <li><a href="{{ url_for('manage_account') }}"><i class="fas fa-user-cog"></i> <span>Manage Account</span></a></li>
+                    <li><a href="#" onclick="showLogoutConfirmation()"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
+                </ul>
+            </nav>
+
+            <main class="main-content">
+                <div class="waves-background"></div>
+                
+                <div class="upload-container">
+                    <div class="upload-header">
+                        <h1><i class="fas fa-cloud-upload-alt"></i> Upload Audio</h1>
+                        <p>Upload a WAV or MP3 file for spectral analysis and classification</p>
+                    </div>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    <i class="fas fa-info-circle"></i> {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form action="/upload" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <div class="file-upload-wrapper">
+                                <label for="audioFile" style="cursor: pointer; display: block;">
+                                    <i class="fas fa-music" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                                    <div style="margin-bottom: 10px; font-weight: 500;">Choose an audio file</div>
+                                </label>
+                                <input type="file" id="audioFile" name="audioFile" accept="audio/*" required class="form-control">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary" style="width: 25%; justify-content: center; padding: 1rem; margin: 0 auto; display: flex;">
+                            </i> Analyze Audio
+                        </button>
+                    </form>
+                    
+                    {% if result %}
+                        <div class="results-section">
+                            <div class="result-card-item">
+                                <div class="result-icon">
+                                    <i class="fas fa-file-audio"></i>
+                                </div>
+                                <div class="result-content">
+                                    <h4>File Name</h4>
+                                    <p>{{ filename }}</p>
+                                </div>
+                            </div>
+
+                            <div class="result-card-item">
+                                <div class="result-icon" style="color: #ffffff;">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <div class="result-content">
+                                    <h4>Predicted Class</h4>
+                                    <p>{{ predicted_class }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if fft_original %}
+                        <div class="fft-section">
+                            <div class="fft-title">
+                                <i class="fas fa-chart-bar" style="color: #000000;"></i>
+                                Spectral Analysis Comparison
+                            </div>
+                            
+                            <div class="chart-wrapper">
+                                <canvas id="fftCombinedChart"></canvas>
+                            </div>
+                            
+                            <div class="players-container">
+                                <div class="audio-player-card">
+                                    <h3><i class="fas fa-file-audio" style="color: #1D2545;"></i> Original Audio</h3>
+                                    <div class="audio-info">
+                                        {% if not audio_processed_url %}
+                                        <span style="margin-left: 10px; color: #656565;"><i class="fas fa-check-circle"></i> Currently playing</span>
+                                        {% endif %}
+                                    </div>
+                                    <audio id="originalAudio" controls class="audio-player">
+                                        <source src="{{ audio_original_url }}" type="audio/wav">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    <a href="{{ audio_original_url }}" class="download-btn" download>
+                                        <i class="fas fa-download"></i> Download Original
+                                    </a>
+                                </div>
+
+                                {% if fft_processed %}
+                                <div class="audio-player-card">
+                                    <h3><i class="fas fa-magic" style="color: #28a745;"></i> {{ processed_label }}</h3>
+                                    <div class="audio-info"></div>
+                                    <audio id="processedAudio" controls class="audio-player">
+                                        <source src="{{ audio_processed_url }}" type="audio/wav">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    <a href="{{ audio_processed_url }}" class="download-btn" download>
+                                        <i class="fas fa-download"></i> Download WAV
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <script>
+                            Chart.defaults.color = '#000000';
+                            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+
+                            const fftOriginal = {{ fft_original|tojson }};
+                            const fftProcessed = {{ fft_processed|tojson if fft_processed else 'null' }};
+                            
+                            // Audio Player Sync Logic
+                            const originalAudio = document.getElementById('originalAudio');
+                            const processedAudio = document.getElementById('processedAudio');
+                            
+                            if (originalAudio && processedAudio) {
+                                originalAudio.addEventListener('play', function() {
+                                    processedAudio.pause();
+                                });
+                                processedAudio.addEventListener('play', function() {
+                                    originalAudio.pause();
+                                });
+                            }
+                            
+                            function sampleFFTData(fftData, maxPoints = 800) {
+                                if(!fftData) return { frequencies: [], magnitude: [] };
+                                const sampleRate = Math.ceil(fftData.frequencies.length / maxPoints);
+                                const sampledFrequencies = [];
+                                const sampledMagnitude = [];
+                                
+                                for (let i = 0; i < fftData.frequencies.length; i += sampleRate) {
+                                    sampledFrequencies.push(parseFloat(fftData.frequencies[i]).toFixed(0));
+                                    sampledMagnitude.push(fftData.magnitude[i]);
+                                }
+                                return { frequencies: sampledFrequencies, magnitude: sampledMagnitude };
+                            }
+                            
+                            // Prepare Original Data
+                            const originalSampled = sampleFFTData(fftOriginal);
+                            
+                            // Chart Configuration
+                            const ctxCombined = document.getElementById('fftCombinedChart').getContext('2d');
+                            
+                            const datasets = [{
+                                label: 'Original Audio',
+                                data: originalSampled.magnitude,
+                                borderColor: '#1D2545',
+                                backgroundColor: 'rgba(33, 3, 132, 0.1)',
+                                borderWidth: 1,
+                                tension: 0.4, /* Smoothing added here */
+                                fill: true,
+                                pointRadius: 0,
+                                order: 2
+                            }];
+
+                            // Add Processed Data if available
+                            let labels = originalSampled.frequencies;
+                            
+                            if (fftProcessed) {
+                                const processedSampled = sampleFFTData(fftProcessed);
+                                datasets.push({
+                                    label: '{{ processed_label }}',
+                                    data: processedSampled.magnitude,
+                                    borderColor: '#28a745', /* Green color */
+                                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                    borderWidth: 1,
+                                    tension: 0.4, /* Smoothing added, borderDash removed */
+                                    fill: false,
+                                    pointRadius: 0,
+                                    order: 1
+                                });
+                            }
+
+                            new Chart(ctxCombined, {
+                                type: 'line',
+                                data: {
+                                    labels: labels,
+                                    datasets: datasets
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    interaction: {
+                                        mode: 'index',
+                                        intersect: false,
+                                    },
+                                    plugins: {
+                                        legend: { display: true, labels: { color: '#000000' } },
+                                        tooltip: {
+                                            mode: 'index',
+                                            intersect: false,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                            titleColor: '#ffffff',
+                                            bodyColor: '#ffffff',
+                                            borderColor: '#000000',
+                                            borderWidth: 1
+                                        }
+                                    },
+                                    scales: {
+                                        x: { 
+                                            title: { display: true, text: 'Frequency (Hz)', color: '#000' },
+                                            ticks: { color: '#666', maxTicksLimit: 12 }
+                                        },
+                                        y: { 
+                                            title: { display: true, text: 'Magnitude (dB)', color: '#000' },
+                                            suggestedMin: -100, suggestedMax: 0,
+                                            ticks: { color: '#000000' }
+                                        }
+                                    }
+                                }
+                            });
+                        </script>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <div class="nav-button" style="margin-top: 2rem; text-align: center;">
+                        <a href="{{ url_for('main') }}" class="btn-secondary" style="text-decoration: none; display: inline-block;">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="logout-modal" class="modal" style="display: none;">
+        <div class="modal-content centered-modal">
+            <div class="modal-icon logout-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3>Ready to leave?</h3>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideLogoutConfirmation()">Cancel</button>
+                <button class="btn-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SIDEBAR TOGGLE LOGIC
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            if(toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+
+            // AUTO-DISMISS ALERT MESSAGES
+            const alerts = document.querySelectorAll('.alert');
+            if (alerts.length > 0) {
+                setTimeout(() => {
+                    alerts.forEach(alert => {
+                        alert.style.transition = 'opacity 0.5s ease';
+                        alert.style.opacity = '0';
+                        setTimeout(() => alert.remove(), 500); 
+                    });
+                }, 5000); 
+            }
+        });
+
+        function showLogoutConfirmation() {
+            document.getElementById('logout-modal').style.display = 'flex';
+        }
+
+        function hideLogoutConfirmation() {
+            document.getElementById('logout-modal').style.display = 'none';
+        }
+
+        function logout() {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('logout-modal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>

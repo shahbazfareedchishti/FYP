@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 
 class AuthService:
     def __init__(self, db_helper=None):
-        # Accept db_helper as parameter, create new one if not provided
         self.db_helper = db_helper if db_helper else DatabaseHelper()
         self._current_user_id = None
         self._current_username = None
@@ -27,7 +26,6 @@ class AuthService:
     
     def request_password_reset(self, email):
         try:
-            # Check if email exists in database
             user = self.db_helper.get_user_by_email(email)
             if user is None:
                 raise Exception('No account found with this email')
@@ -37,7 +35,6 @@ class AuthService:
             
             print(f'Generated reset token for {email}: {token}')
             
-            # Send real email via Gmail
             email_sent = self._send_password_reset_email(email, token)
             
             if email_sent:
@@ -52,7 +49,6 @@ class AuthService:
         try:
             print(f'Attempting to send email to: {email}')
             
-            # Load environment variables
             gmail_username = os.getenv('GMAIL_EMAIL')
             gmail_password = os.getenv('GMAIL_PASSWORD')
             
@@ -63,13 +59,11 @@ class AuthService:
             if not gmail_username or not gmail_password:
                 raise Exception('Gmail credentials are empty. Check your environment variables')
 
-            # Create message
             message = MIMEMultipart('alternative')
             message['From'] = f'Sound Detector App <{gmail_username}>'
             message['To'] = email
             message['Subject'] = 'Password Reset Code - Sound Detector App'
 
-            # Plain text version
             text = f'''Password Reset Request
 
 Hello,
@@ -92,7 +86,6 @@ Best regards,
 MaritimeSoundDetector Team
 (This is an automated message, please do not reply.)'''
 
-            # HTML version
             html = f'''<!DOCTYPE html>
 <html>
 <head>

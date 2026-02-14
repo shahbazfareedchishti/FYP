@@ -9,10 +9,194 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="icon" href="{{ url_for('static', filename='images/anchor.png') }}" type="image/png">
+    
+    <style>
+        /* Page Specific Styles */
+        .snr-analysis-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .analysis-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .analysis-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #2196F3 0%, #00BCD4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .analysis-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+        }
+
+        .stat-info h3 {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header h3 {
+            color: #333;
+            margin: 0;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .quality-indicators {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .quality-indicators h3 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .quality-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .quality-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .quality-item i {
+            font-size: 2.5rem;
+            width: 60px;
+            text-align: center;
+        }
+
+        .quality-info h4 {
+            color: #333;
+            margin-bottom: 0.25rem;
+            font-size: 1.2rem;
+        }
+
+        .quality-info p {
+            color: #666;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .analysis-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .snr-analysis-container {
+                padding: 1rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            .analysis-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Navigation Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
                 <div class="app-logo">
@@ -32,10 +216,13 @@
             </ul>
         </nav>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="waves-background"></div>
             
+            <script type="application/json" id="snr-json">
+                {{ snr_data | tojson | safe }}
+            </script>
+
             <div class="snr-analysis-container">
                 <div class="analysis-header">
                     <h1><i class="fas fa-chart-line"></i> Detailed Signal Analysis</h1>
@@ -43,7 +230,6 @@
                 </div>
 
                 <div class="analysis-content">
-                    <!-- Stats Cards -->
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-icon">
@@ -83,25 +269,25 @@
                         </div>
                     </div>
 
-                    <!-- Main Chart -->
                     <div class="chart-container">
                         <div class="chart-header">
                             <h3>SNR Over Time</h3>
                             <div class="chart-legend">
                                 <div class="legend-item">
-                                    <span class="legend-color" style="background: rgba(255, 193, 7, 0.8)"></span>
+                                    <span class="legend-color" style="background: rgba(33, 150, 243, 0.8)"></span>
                                     <span>SNR Value</span>
                                 </div>
                                 <div class="legend-item">
                                     <span class="legend-color" style="background: rgba(244, 67, 54, 0.6)"></span>
-                                    <span>Max Reading (60dB)</span>
+                                    <span>Max Threshold (60dB)</span>
                                 </div>
                             </div>
                         </div>
-                        <canvas id="snrChart"></canvas>
+                        <div class="chart-wrapper">
+                            <canvas id="snrChart"></canvas>
+                        </div>
                     </div>
 
-                    <!-- Quality Indicators -->
                     <div class="quality-indicators">
                         <h3>Signal Quality Assessment</h3>
                         <div class="quality-grid">
@@ -109,11 +295,11 @@
                                 <i class="fas fa-signal" id="quality-icon"></i>
                                 <div class="quality-info">
                                     <h4 id="quality-text">Unknown</h4>
-                                    <p id="quality-description">Signal quality assessment</p>
+                                    <p id="quality-description">Calculating signal quality...</p>
                                 </div>
                             </div>
                             <div class="quality-item">
-                                <i class="fas fa-clock"></i>
+                                <i class="fas fa-clock" style="color: #607D8B;"></i>
                                 <div class="quality-info">
                                     <h4>Duration</h4>
                                     <p id="duration-text">0.0 seconds</p>
@@ -124,9 +310,9 @@
                 </div>
 
                 <div class="analysis-actions">
-                    <button class="btn-secondary" onclick="window.history.back()">
-                        <i class="fas fa-arrow-left"></i> Back to Detection
-                    </button>
+                    <a href="{{ url_for('main') }}" class="btn-secondary" style="text-decoration: none;">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
                     <button class="btn-primary" onclick="downloadChart()">
                         <i class="fas fa-download"></i> Export Chart
                     </button>
@@ -135,9 +321,24 @@
         </main>
     </div>
 
-    <script>
+    <div id="logout-modal" class="modal" style="display: none;">
+        <div class="modal-content centered-modal">
+            <div class="modal-icon logout-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3>Ready to leave?</h3>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideLogoutConfirmation()">Cancel</button>
+                <button class="btn-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
 
-        // Load SNR data from a dedicated JSON script tag to avoid template/JS parsing issues
+    <script>
+        // Load SNR data from the JSON script tag
         (function() {
             const el = document.getElementById('snr-json');
             let parsed = {};
@@ -151,6 +352,7 @@
             }
             window.snrData = parsed || {};
         })();
+
         const snrData = window.snrData;
         let snrChart;
 
@@ -170,20 +372,19 @@
             const snrValues = snrData.snr_over_time;
             const timeBins = snrData.time_bins;
             
-            // Calculate stats
+            // Calculate scale limits
             const minSnr = Math.min(...snrValues);
             const maxSnr = Math.max(...snrValues);
-            const avgSnr = snrValues.reduce((a, b) => a + b) / snrValues.length;
 
             // Create gradient for the line
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(255, 193, 7, 0.8)');
-            gradient.addColorStop(1, 'rgba(255, 193, 7, 0.2)');
+            gradient.addColorStop(0, 'rgba(33, 150, 243, 1)');
+            gradient.addColorStop(1, 'rgba(33, 150, 243, 0.3)');
 
             // Create gradient for area under curve
             const areaGradient = ctx.createLinearGradient(0, 0, 0, 400);
-            areaGradient.addColorStop(0, 'rgba(255, 193, 7, 0.3)');
-            areaGradient.addColorStop(1, 'rgba(255, 193, 7, 0.05)');
+            areaGradient.addColorStop(0, 'rgba(33, 150, 243, 0.3)');
+            areaGradient.addColorStop(1, 'rgba(33, 150, 243, 0.05)');
 
             snrChart = new Chart(ctx, {
                 type: 'line',
@@ -192,32 +393,35 @@
                     datasets: [{
                         label: 'SNR (dB)',
                         data: snrValues,
-                        borderColor: gradient,
+                        borderColor: '#2196F3',
                         backgroundColor: areaGradient,
-                        borderWidth: 3,
+                        borderWidth: 2,
                         fill: true,
                         tension: 0.4,
-                        pointBackgroundColor: 'rgba(255, 193, 7, 0.8)',
-                        pointBorderColor: '#ffffff',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#2196F3',
                         pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     plugins: {
                         legend: {
                             display: false
                         },
                         tooltip: {
-                            mode: 'index',
-                            intersect: false,
                             backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleColor: '#ffffff',
-                            bodyColor: '#ffffff',
-                            borderColor: 'rgba(255, 193, 7, 0.5)',
+                            padding: 12,
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
                             borderWidth: 1
                         }
                     },
@@ -226,61 +430,60 @@
                             title: {
                                 display: true,
                                 text: 'Time (seconds)',
-                                color: '#ffffff'
+                                color: '#666'
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                                color: '#f0f0f0'
                             },
                             ticks: {
-                                color: '#ffffff'
+                                color: '#666'
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'SNR (dB)',
-                                color: '#ffffff'
+                                color: '#666'
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                                color: '#f0f0f0'
                             },
                             ticks: {
-                                color: '#ffffff'
+                                color: '#666'
                             },
                             suggestedMin: Math.max(0, minSnr - 5),
                             suggestedMax: Math.min(65, maxSnr + 5)
                         }
                     },
                     animation: {
-                        duration: 2000,
+                        duration: 1500,
                         easing: 'easeOutQuart'
                     }
-                }
-            });
-
-            // Add max SNR line annotation
-            Chart.register({
-                id: 'maxLine',
-                afterDraw: function(chart) {
-                    const ctx = chart.ctx;
-                    const yAxis = chart.scales.y;
-                    const maxSnrY = yAxis.getPixelForValue(60);
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.setLineDash([5, 5]);
-                    ctx.moveTo(0, maxSnrY);
-                    ctx.lineTo(chart.width, maxSnrY);
-                    ctx.strokeStyle = 'rgba(244, 67, 54, 0.6)';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    
-                    // Add max reading label
-                    ctx.fillStyle = 'rgba(244, 67, 54, 0.8)';
-                    ctx.font = '12px Inter';
-                    ctx.fillText('Max Reading (60dB)', 10, maxSnrY - 8);
-                    ctx.restore();
-                }
+                },
+                plugins: [{
+                    id: 'maxLine',
+                    afterDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const yAxis = chart.scales.y;
+                        const maxSnrY = yAxis.getPixelForValue(60);
+                        
+                        if (maxSnrY >= chart.chartArea.top && maxSnrY <= chart.chartArea.bottom) {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.setLineDash([5, 5]);
+                            ctx.moveTo(chart.chartArea.left, maxSnrY);
+                            ctx.lineTo(chart.chartArea.right, maxSnrY);
+                            ctx.strokeStyle = 'rgba(244, 67, 54, 0.6)';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            
+                            ctx.fillStyle = 'rgba(244, 67, 54, 0.8)';
+                            ctx.font = '12px Inter';
+                            ctx.fillText('Max Threshold (60dB)', chart.chartArea.left + 10, maxSnrY - 8);
+                            ctx.restore();
+                        }
+                    }
+                }]
             });
         }
 
@@ -297,16 +500,24 @@
         }
 
         function updateQualityIndicators() {
-            const avgSnr = snrData.snr_over_time.reduce((a, b) => a + b) / snrData.snr_over_time.length;
+            const snrValues = snrData.snr_over_time;
+            const avgSnr = snrValues.reduce((a, b) => a + b) / snrValues.length;
             const qualityInfo = getSNRQuality(avgSnr);
             
             document.getElementById('quality-text').textContent = qualityInfo.text;
             document.getElementById('quality-description').textContent = qualityInfo.description;
-            document.getElementById('quality-icon').className = qualityInfo.icon;
-            document.getElementById('quality-icon').style.color = qualityInfo.color;
+            
+            const icon = document.getElementById('quality-icon');
+            icon.className = qualityInfo.icon;
+            icon.style.color = qualityInfo.color;
             
             // Update duration
-            const duration = snrData.total_duration || (snrData.time_bins[snrData.time_bins.length - 1] - snrData.time_bins[0]);
+            let duration = 0;
+            if (snrData.total_duration) {
+                duration = snrData.total_duration;
+            } else if (snrData.time_bins && snrData.time_bins.length > 0) {
+                duration = snrData.time_bins[snrData.time_bins.length - 1] - snrData.time_bins[0];
+            }
             document.getElementById('duration-text').textContent = duration.toFixed(1) + ' seconds';
         }
 
@@ -315,35 +526,35 @@
                 return {
                     text: "Excellent",
                     description: "Clear signal with minimal noise",
-                    icon: "fas fa-signal excellent",
+                    icon: "fas fa-signal",
                     color: "#4CAF50"
                 };
             } else if (snrDb >= 20) {
                 return {
                     text: "Good",
                     description: "Good signal quality",
-                    icon: "fas fa-signal good",
+                    icon: "fas fa-signal",
                     color: "#8BC34A"
                 };
             } else if (snrDb >= 15) {
                 return {
                     text: "Fair",
                     description: "Moderate signal quality",
-                    icon: "fas fa-signal fair",
+                    icon: "fas fa-signal",
                     color: "#FFC107"
                 };
             } else if (snrDb >= 10) {
                 return {
                     text: "Poor",
                     description: "Weak signal with noticeable noise",
-                    icon: "fas fa-signal poor",
+                    icon: "fas fa-exclamation-triangle",
                     color: "#FF9800"
                 };
             } else {
                 return {
                     text: "Very Poor",
                     description: "Signal heavily affected by noise",
-                    icon: "fas fa-signal very-poor",
+                    icon: "fas fa-times-circle",
                     color: "#f44336"
                 };
             }
@@ -351,10 +562,10 @@
 
         function showNoDataMessage() {
             document.querySelector('.analysis-content').innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-chart-line" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <div style="text-align: center; padding: 4rem; color: #666;">
+                    <i class="fas fa-chart-line" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
                     <h3>No SNR Data Available</h3>
-                    <p>No time-series SNR data is available for this detection.</p>
+                    <p>No time-series SNR data could be found for this detection.</p>
                 </div>
             `;
         }
@@ -367,202 +578,26 @@
                 link.click();
             }
         }
+
+        // Logout Modal Functions
+        function showLogoutConfirmation() {
+            document.getElementById('logout-modal').style.display = 'flex';
+        }
+
+        function hideLogoutConfirmation() {
+            document.getElementById('logout-modal').style.display = 'none';
+        }
+
+        function logout() {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('logout-modal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
     </script>
-
-    <style>
-        .snr-analysis-container {
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .analysis-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .analysis-header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .analysis-content {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .stat-icon i {
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-info h3 {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        .chart-container {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .chart-header h3 {
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        .chart-legend {
-            display: flex;
-            gap: 1.5rem;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
-        }
-
-        #snrChart {
-            height: 400px;
-            width: 100%;
-        }
-
-        .quality-indicators {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .quality-indicators h3 {
-            color: var(--text-primary);
-            margin-bottom: 1.5rem;
-        }
-
-        .quality-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .quality-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .quality-item i {
-            font-size: 2.5rem;
-            width: 60px;
-        }
-
-        .quality-item i.excellent { color: #4CAF50; }
-        .quality-item i.good { color: #8BC34A; }
-        .quality-item i.fair { color: #FFC107; }
-        .quality-item i.poor { color: #FF9800; }
-        .quality-item i.very-poor { color: #f44336; }
-
-        .quality-info h4 {
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-            font-size: 1.2rem;
-        }
-
-        .quality-info p {
-            color: var(--text-secondary);
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .analysis-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-        }
-
-        @media (max-width: 768px) {
-            .snr-analysis-container {
-                padding: 1rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .chart-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-            
-            .analysis-actions {
-                flex-direction: column;
-            }
-        }
-    </style>
 </body>
 </html>

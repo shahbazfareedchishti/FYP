@@ -28,7 +28,7 @@
                         {% for category, message in messages %}
                             <div class="flash-message {{ category }}">
                                 {{ message }}
-                                <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                                <button class="flash-close" onclick="this.parentElement.remove()" style="color: #333;">×</button>
                             </div>
                         {% endfor %}
                     </div>
@@ -77,7 +77,7 @@
                                minlength="6"
                                autocomplete="new-password">
                         <button type="button" class="password-toggle" id="password-toggle">
-                            <i class="fas fa-eye"></i>
+                            <i class="fas fa-eye" style="margin-left: -30px;"></i>
                         </button>
                     </div>
                     <div class="validation-error" id="password-error"></div>
@@ -95,7 +95,7 @@
                                minlength="6"
                                autocomplete="new-password">
                         <button type="button" class="password-toggle" id="confirm-password-toggle">
-                            <i class="fas fa-eye"></i>
+                            <i class="fas fa-eye" style="margin-left: -30px;"></i>
                         </button>
                     </div>
                     <div class="validation-error" id="confirm-password-error"></div>
@@ -114,7 +114,6 @@
         </div>
     </div>
 
-    <!-- Success Modal -->
     <div id="success-modal" class="modal" style="display: none;">
         <div class="modal-content success-modal">
             <div class="success-icon">
@@ -346,19 +345,52 @@
     </script>
 
     <style>
+        /* --- FIXED INPUT COLORS --- */
+        
+        /* 1. Ensure input text and background are correct */
+        .form-input {
+            background-color: white !important;
+            color: #333 !important; /* Makes text visible */
+            border: 1px solid #ddd;
+            padding-left: 45px;
+            padding-right: 45px;
+        }
+
+        /* 2. Fix Placeholders */
+        .form-input::placeholder {
+            color: #9ca3af;
+            opacity: 1;
+        }
+
+        /* 3. Fix Chrome Yellow Autofill */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #333 !important;
+        }
+
+        /* 4. Fix Icons inside inputs */
+        .input-with-icon i {
+            color: #666; /* Visible gray icon */
+        }
+
+        /* --- EXISTING STYLES --- */
         .back-button {
             position: absolute;
-            top: 0;
-            left: 0;
+            margin-left: 10px;
+            margin-top: 10px;
             color: var(--text-secondary);
             text-decoration: none;
             padding: 0.5rem;
             border-radius: 8px;
             transition: all 0.3s ease;
+            color: #1D2545;
         }
 
         .back-button:hover {
-            color: var(--text-primary);
+            color: #1D2545;
             background: rgba(255, 255, 255, 0.1);
         }
 
@@ -385,7 +417,6 @@
             margin-bottom: 2rem;
         }
 
-        /* Add to existing CSS */
         .input-with-icon {
             position: relative;
         }
@@ -395,13 +426,7 @@
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-secondary);
             z-index: 1;
-        }
-
-        .input-with-icon .form-input {
-            padding-left: 45px;
-            padding-right: 45px;
         }
 
         .password-toggle {
@@ -411,14 +436,14 @@
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--text-secondary);
+            color: #666; /* Made visible */
             cursor: pointer;
             padding: 5px;
             font-size: 1rem;
         }
 
         .password-toggle:hover {
-            color: var(--text-primary);
+            color: #333;
         }
 
         .validation-error {
@@ -434,7 +459,7 @@
         }
 
         .form-input:valid {
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: #ddd;
         }
 
         .fa-spinner {
