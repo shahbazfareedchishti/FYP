@@ -70,7 +70,7 @@ This project utilizes the QiandaoEar22 underwater acoustic dataset.
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/shahbazfdev/FYP.git
+git clone https://github.com/shahbazfdev/Identification-and-Reduction-of-Noise-by-Mechanical-Systems-Onboard-Ships.git
 
 ```
 
